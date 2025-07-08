@@ -30,6 +30,7 @@ import math
 import numpy as np
 import warnings
 from qonnx.core.datatype import DataType
+from qonnx.custom_op.registry import register_op
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
@@ -37,6 +38,7 @@ from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 # tensor shapes are the same. performs data width conversion at the rtlsim level
 
 
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="StreamingDataWidthConverter")
 class StreamingDataWidthConverter(HWCustomOp):
     """Abstraction layer for HW implementation of StreamingDataWidthConverter"""
 

@@ -23,7 +23,7 @@ from qonnx.core.modelwrapper import ModelWrapper
 from qonnx.custom_op.general.quant import max_int, min_int
 
 # Utility for registering HWCustomOp implementations into the module scope
-from finn.custom_op.fpgadataflow import register_custom_op
+from qonnx.custom_op.registry import register_op
 
 # Derive custom operators form the FINN base custom op
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
@@ -503,7 +503,7 @@ class ElementwiseBinaryOperation(HWCustomOp):
 
 
 # Derive a specialization to implement elementwise addition of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseAdd")
 class ElementwiseAdd(ElementwiseBinaryOperation):
     # Specialize to implement the addition operation of left hand side and right
     # hand side input
@@ -543,7 +543,7 @@ class ElementwiseAdd(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise subtraction of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseSub")
 class ElementwiseSub(ElementwiseBinaryOperation):
     # Specialize to implement the subtraction operation of left hand side and
     # right hand side input
@@ -579,7 +579,7 @@ class ElementwiseSub(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise multiplication of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseMul")
 class ElementwiseMul(ElementwiseBinaryOperation):
     # Specialize to implement the multiplication operation of left hand side and
     # right hand side input
@@ -600,7 +600,7 @@ class ElementwiseMul(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise division of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseDiv")
 class ElementwiseDiv(ElementwiseBinaryOperation):
     # TODO: Not tested due to divide by zero from randomly generated inputs...
     # Specialize to implement the division operation of left hand side and
@@ -626,7 +626,7 @@ class ElementwiseDiv(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise logical and of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseAnd")
 class ElementwiseAnd(ElementwiseBinaryOperation):
     # Specialize to implement the logical and operation of left hand side and
     # right hand side input
@@ -640,7 +640,7 @@ class ElementwiseAnd(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise logical or of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseOr")
 class ElementwiseOr(ElementwiseBinaryOperation):
     # Specialize to implement the logical or operation of left hand side and
     # right hand side input
@@ -654,7 +654,7 @@ class ElementwiseOr(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise logical xor of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseXor")
 class ElementwiseXor(ElementwiseBinaryOperation):
     # Specialize to implement the logical xor operation of left hand side and
     # right hand side input
@@ -668,7 +668,7 @@ class ElementwiseXor(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise equality of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseEqual")
 class ElementwiseEqual(ElementwiseBinaryOperation):
     # Specialize to implement the logical equal operation of left hand side and
     # right hand side input
@@ -682,7 +682,7 @@ class ElementwiseEqual(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise less of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseLess")
 class ElementwiseLess(ElementwiseBinaryOperation):
     # Specialize to implement the logical less operation of left hand side and
     # right hand side input
@@ -696,7 +696,7 @@ class ElementwiseLess(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise less or equal of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseLessOrEqual")
 class ElementwiseLessOrEqual(ElementwiseBinaryOperation):
     # Specialize to implement the logical less or equal operation of left hand
     # side and right hand side input
@@ -710,7 +710,7 @@ class ElementwiseLessOrEqual(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise greater of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseGreater")
 class ElementwiseGreater(ElementwiseBinaryOperation):
     # Specialize to implement the logical greater operation of left hand side
     # and right hand side input
@@ -725,7 +725,7 @@ class ElementwiseGreater(ElementwiseBinaryOperation):
 
 # Derive a specialization to implement elementwise greater or equal of two
 # inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseGreaterOrEqual")
 class ElementwiseGreaterOrEqual(ElementwiseBinaryOperation):
     # Specialize to implement the logical greater or equal operation of left
     # hand side and right hand side input
@@ -739,7 +739,7 @@ class ElementwiseGreaterOrEqual(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise bitwise and of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseBitwiseAnd")
 class ElementwiseBitwiseAnd(ElementwiseBinaryOperation):
     # Specialize to implement the bitwise and operation of left hand side and
     # right hand side input
@@ -761,7 +761,7 @@ class ElementwiseBitwiseAnd(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise bitwise or of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseBitwiseOr")
 class ElementwiseBitwiseOr(ElementwiseBinaryOperation):
     # Specialize to implement the bitwise or operation of left hand side and
     # right hand side input
@@ -783,7 +783,7 @@ class ElementwiseBitwiseOr(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise bitwise xor of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseBitwiseXor")
 class ElementwiseBitwiseXor(ElementwiseBinaryOperation):
     # Specialize to implement the bitwise xor operation of left hand side and
     # right hand side input
@@ -805,7 +805,7 @@ class ElementwiseBitwiseXor(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise maximum of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseMaximum")
 class ElementwiseMaximum(ElementwiseBinaryOperation):
     _operation = "Maximum", np.maximum, "({0} >= {1} ? {0} : {1})", None
 
@@ -828,7 +828,7 @@ class ElementwiseMaximum(ElementwiseBinaryOperation):
 
 
 # Derive a specialization to implement elementwise minimum of two inputs
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseMinimum")
 class ElementwiseMinimum(ElementwiseBinaryOperation):
     _operation = "Minimum", np.minimum, "({0} <= {1} ? {0} : {1})", None
 
@@ -865,7 +865,7 @@ def float2int(x, y, bitwidth, narrow, signed):
 # or as ternary (if we take in the min/max values as inputs)
 # Derive a specialization to implement elementwise conversion of float values
 # to integers of a particular specification (bitwidth, signedness, narrow_range)
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseFloat2Int")
 class ElementwiseFloat2Int(ElementwiseBinaryOperation):
 
     # Defines attributes which must be present on this node
@@ -921,7 +921,7 @@ class ElementwiseFloat2Int(ElementwiseBinaryOperation):
 
 # TODO this is not really a binary op: it is unary
 # Derive a specialization to implement elementwise dtype casting
-@register_custom_op
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="ElementwiseFloatCast")
 class ElementwiseFloatCast(ElementwiseBinaryOperation):
 
     # Defines attributes which must be present on this node

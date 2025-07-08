@@ -28,10 +28,12 @@
 
 import numpy as np
 from qonnx.core.datatype import DataType
+from qonnx.custom_op.registry import register_op
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
 
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="Pool")
 class Pool(HWCustomOp):
     """Abstraction layer for HW implementation of Pool.
     Requires ConvolutionInputGenerator(depthwise == 1) to format its input

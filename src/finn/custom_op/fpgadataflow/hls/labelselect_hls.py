@@ -28,10 +28,13 @@
 
 import numpy as np
 
+from qonnx.custom_op.registry import register_op
+
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.labelselect import LabelSelect
 
 
+@register_op(domain="finn.custom_op.fpgadataflow.hls", op_type="LabelSelect_hls")
 class LabelSelect_hls(LabelSelect, HLSBackend):
     """Class that corresponds to finn-hlslib LabelSelect_Batch function."""
 

@@ -30,10 +30,12 @@ import onnxruntime as rt
 from onnx import TensorProto, helper
 from qonnx.core.datatype import DataType
 from qonnx.util.basic import qonnx_make_model, roundup_to_integer_multiple
+from qonnx.custom_op.registry import register_op
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
 
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="LabelSelect")
 class LabelSelect(HWCustomOp):
     """Abstraction layer for HW implementation of LabelSelect"""
 

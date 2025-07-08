@@ -29,6 +29,8 @@
 import numpy as np
 import os
 
+from qonnx.custom_op.registry import register_op
+
 from finn.custom_op.fpgadataflow.matrixvectoractivation import MVAU
 from finn.custom_op.fpgadataflow.rtlbackend import RTLBackend
 from finn.util.basic import get_dsp_block, is_versal
@@ -41,6 +43,7 @@ from finn.util.data_packing import npy_to_rtlsim_input, rtlsim_output_to_npy
 # the ... here can be any shape (representing groups of vectors)
 
 
+@register_op(domain="finn.custom_op.fpgadataflow.rtl", op_type="MVAU_rtl")
 class MVAU_rtl(MVAU, RTLBackend):
     """Class that corresponds to finn-rtl Matrix Vector Unit."""
 

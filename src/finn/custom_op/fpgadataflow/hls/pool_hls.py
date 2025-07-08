@@ -28,10 +28,13 @@
 
 import numpy as np
 
+from qonnx.custom_op.registry import register_op
+
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.pool import Pool
 
 
+@register_op(domain="finn.custom_op.fpgadataflow.hls", op_type="Pool_hls")
 class Pool_hls(Pool, HLSBackend):
     """Class that corresponds to finn-hlslib Pool_batch function.
     Requires ConvolutionInputGenerator(depthwise == 1) to format its input

@@ -28,10 +28,13 @@
 
 import numpy as np
 
+from qonnx.custom_op.registry import register_op
+
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.streamingeltwise import StreamingEltwise
 
 
+@register_op(domain="finn.custom_op.fpgadataflow.hls", op_type="StreamingEltwise_hls")
 class StreamingEltwise_hls(StreamingEltwise, HLSBackend):
     """Class that corresponds to finn-hlslib StreamingEltwise function."""
 

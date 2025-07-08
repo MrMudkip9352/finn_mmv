@@ -33,10 +33,12 @@ from math import ceil
 from onnx import TensorProto, helper
 from qonnx.core.datatype import DataType
 from qonnx.util.basic import qonnx_make_model
+from qonnx.custom_op.registry import register_op
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
 
+@register_op(domain="finn.custom_op.fpgadataflow", op_type="Lookup")
 class Lookup(HWCustomOp):
     """Abstraction layer for HW implementation of streaming elementwise lookup,
     mapping indices to values."""

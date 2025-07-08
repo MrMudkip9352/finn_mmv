@@ -48,9 +48,7 @@ def is_hls_node(node):
     is_node = False
     if node is not None:
         if (node.domain.endswith(".custom_op.fpgadataflow.hls") or
-            ((node.domain.startswith("brainsmith.kernels") or # TAFK TODO: simplify this
-            node.domain.startswith("brainsmith.hw_kernels") or
-            node.domain.startswith("brainsmith.libraries.kernels")) and 
+            (node.domain.startswith("brainsmith.kernels") and 
             node.domain.endswith(".hls"))):
             n_backend = get_by_name(node.attribute, "backend")
             if n_backend is not None:
@@ -66,9 +64,7 @@ def is_rtl_node(node):
     is_node = False
     if node is not None:
         if (node.domain.endswith(".custom_op.fpgadataflow.rtl") or
-            ((node.domain.startswith("brainsmith.kernels") or # TAFK TODO: simplify this
-            node.domain.startswith("brainsmith.hw_kernels") or
-            node.domain.startswith("brainsmith.libraries.kernels")) and 
+            (node.domain.startswith("brainsmith.kernels") and 
             node.domain.endswith(".rtl"))):
             n_backend = get_by_name(node.attribute, "backend")
             if n_backend is not None:
