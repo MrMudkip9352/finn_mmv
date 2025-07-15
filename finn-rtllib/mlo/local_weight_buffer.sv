@@ -67,6 +67,7 @@ localparam int unsigned  NF = MH/PE;
 localparam int unsigned  N_TLS = SF * NF;
 
 localparam int unsigned SIMD_BITS = (SIMD == 1) ? 1 : $clog2(SIMD);
+localparam int unsigned PE_BITS = (PE == 1) ? 1 : $clog2(PE);
 localparam int unsigned WGT_ADDR_BITS = $clog2(NF * SF);
 localparam int unsigned RAM_BITS = (SIMD*WEIGHT_WIDTH + 7)/8 * 8;
 localparam int unsigned WGT_EN_BITS = RAM_BITS / 8;
