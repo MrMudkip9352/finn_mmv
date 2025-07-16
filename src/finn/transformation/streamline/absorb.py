@@ -37,14 +37,7 @@ from qonnx.transformation.infer_datatypes import InferDataTypes
 from qonnx.transformation.infer_shapes import InferShapes
 from qonnx.util.basic import get_by_name
 
-from finn.plugin import transform
 
-
-@transform(
-    name="AbsorbSignBiasIntoMultiThreshold",
-    stage="topology_opt",
-    description="Absorb scalar bias originating from signed int export back into MultiThreshold"
-)
 class AbsorbSignBiasIntoMultiThreshold(Transformation):
     """Absorb scalar bias originating from signed int export back into
     MultiThreshold and re-evaluate the output datatype."""
@@ -107,11 +100,6 @@ class AbsorbSignBiasIntoMultiThreshold(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="AbsorbAddIntoMultiThreshold",
-    stage="topology_opt",
-    description="Absorb preceding Add ops into MultiThreshold by updating threshold values"
-)
 class AbsorbAddIntoMultiThreshold(Transformation):
     """Absorb preceding Add ops into MultiThreshold by updating the threshold
     values. Only scalar/1D add vectors can be absorbed."""
@@ -149,11 +137,6 @@ class AbsorbAddIntoMultiThreshold(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="AbsorbMulIntoMultiThreshold",
-    stage="topology_opt",
-    description="Absorb preceding Mul ops into MultiThreshold by updating threshold values"
-)
 class AbsorbMulIntoMultiThreshold(Transformation):
     """Absorb preceding Mul ops into MultiThreshold by updating the threshold
     values. Only *positive* scalar/1D mul vectors can be absorbed."""
@@ -192,11 +175,6 @@ class AbsorbMulIntoMultiThreshold(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="FactorOutMulSignMagnitude",
-    stage="topology_opt",
-    description="Factor out multiplication sign and magnitude components"
-)
 class FactorOutMulSignMagnitude(Transformation):
     """Split multiply-by-constant nodes into two multiply-by-constant nodes,
     where the first node is a bipolar vector (of signs) and the second is a
@@ -236,11 +214,6 @@ class FactorOutMulSignMagnitude(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="Absorb1BitMulIntoMatMul",
-    stage="topology_opt",
-    description="Absorb 1-bit multiplication into matrix multiplication"
-)
 class Absorb1BitMulIntoMatMul(Transformation):
     """Absorb bipolar or binary multiplications into the preciding matrix
     multiply."""
@@ -278,11 +251,6 @@ class Absorb1BitMulIntoMatMul(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="Absorb1BitMulIntoConv",
-    stage="topology_opt",
-    description="Absorb 1-bit multiplication into convolution"
-)
 class Absorb1BitMulIntoConv(Transformation):
     """Absorb bipolar or binary multiplications into the preciding convolution."""
 
@@ -324,11 +292,6 @@ class Absorb1BitMulIntoConv(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="AbsorbTransposeIntoMultiThreshold",
-    stage="topology_opt",
-    description="Absorb transpose operations into MultiThreshold"
-)
 class AbsorbTransposeIntoMultiThreshold(Transformation):
     """For (NCHWTranspose -> MultiThreshold) move Transpose past MultiThreshold
     and set its data_layout mode to NHWC."""
@@ -386,11 +349,6 @@ class AbsorbTransposeIntoMultiThreshold(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="AbsorbTransposeIntoFlatten",
-    stage="topology_opt",
-    description="Absorb transpose operations into flatten"
-)
 class AbsorbTransposeIntoFlatten(Transformation):
     """Absorb transpose node into succeeding flatten node, if H=W=1 and the first
     dimension stays the same. Can also be applied if flatten is implemented implicitly
@@ -453,11 +411,6 @@ class AbsorbTransposeIntoFlatten(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="AbsorbScalarMulAddIntoTopK",
-    stage="topology_opt",
-    description="Absorb scalar multiply and add into TopK"
-)
 class AbsorbScalarMulAddIntoTopK(Transformation):
     """Remove mul/add node prior to topk node if the op is scalar. Note that
     the TopK output probabilities will change, but the indices won't."""
@@ -497,11 +450,6 @@ class AbsorbScalarMulAddIntoTopK(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="AbsorbConsecutiveTransposes",
-    stage="topology_opt",
-    description="Absorb consecutive transpose operations"
-)
 class AbsorbConsecutiveTransposes(Transformation):
     """Remove (Transpose -> Transpose) patterns when the input and output
     of the pattern have the same layout."""
@@ -562,11 +510,6 @@ class AbsorbConsecutiveTransposes(Transformation):
         return (model, graph_modified)
 
 
-@transform(
-    name="AbsorbTransposeIntoResize",
-    stage="topology_opt",
-    description="Absorb transpose operations into resize"
-)
 class AbsorbTransposeIntoResize(Transformation):
     """For (NCHWTranspose -> Resize) move Transpose past Resize and
     change the Resize node's attributes accordingly."""

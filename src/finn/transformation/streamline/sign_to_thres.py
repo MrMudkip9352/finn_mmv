@@ -31,14 +31,7 @@ from onnx import helper as oh
 from qonnx.core.datatype import DataType
 from qonnx.transformation.base import Transformation
 
-from finn.plugin import transform
 
-
-@transform(
-    name="ConvertSignToThres",
-    stage="topology_opt",
-    description="Convert Sign nodes to MultiThreshold with threshold at 0"
-)
 class ConvertSignToThres(Transformation):
     """Convert Sign node instances to MultiThreshold with threshold at 0."""
 
