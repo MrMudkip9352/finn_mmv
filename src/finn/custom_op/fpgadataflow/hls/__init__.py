@@ -45,6 +45,30 @@ from finn.custom_op.fpgadataflow.hls.convolutioninputgenerator_hls import (
 )
 from finn.custom_op.fpgadataflow.hls.downsampler_hls import DownSampler_hls
 from finn.custom_op.fpgadataflow.hls.duplicatestreams_hls import DuplicateStreams_hls
+
+# Also import ElementwiseBinary variants
+from finn.custom_op.fpgadataflow.hls.elementwise_binary_hls import (
+    ElementwiseAdd_hls,
+    ElementwiseAnd_hls,
+    ElementwiseBinaryOperation_hls,
+    ElementwiseBitwiseAnd_hls,
+    ElementwiseBitwiseOr_hls,
+    ElementwiseBitwiseXor_hls,
+    ElementwiseDiv_hls,
+    ElementwiseEqual_hls,
+    ElementwiseFloat2Int_hls,
+    ElementwiseFloatCast_hls,
+    ElementwiseGreater_hls,
+    ElementwiseGreaterOrEqual_hls,
+    ElementwiseLess_hls,
+    ElementwiseLessOrEqual_hls,
+    ElementwiseMaximum_hls,
+    ElementwiseMinimum_hls,
+    ElementwiseMul_hls,
+    ElementwiseOr_hls,
+    ElementwiseSub_hls,
+    ElementwiseXor_hls,
+)
 from finn.custom_op.fpgadataflow.hls.fmpadding_hls import FMPadding_hls
 from finn.custom_op.fpgadataflow.hls.fmpadding_pixel_hls import FMPadding_Pixel_hls
 from finn.custom_op.fpgadataflow.hls.globalaccpool_hls import GlobalAccPool_hls
@@ -63,6 +87,7 @@ from finn.custom_op.fpgadataflow.hls.tlastmarker_hls import TLastMarker_hls
 from finn.custom_op.fpgadataflow.hls.upsampler_hls import UpsampleNearestNeighbour_hls
 from finn.custom_op.fpgadataflow.hls.vectorvectoractivation_hls import VVAU_hls
 
+<<<<<<< HEAD
 # Also import ElementwiseBinary variants
 from finn.custom_op.fpgadataflow.hls.elementwise_binary_hls import (
     ElementwiseBinaryOperation_hls,
@@ -86,3 +111,38 @@ from finn.custom_op.fpgadataflow.hls.elementwise_binary_hls import (
     ElementwiseFloat2Int_hls,
     ElementwiseFloatCast_hls,
 )
+||||||| c82f81b8
+# Also import ElementwiseBinary variants
+from finn.custom_op.fpgadataflow.hls.elementwise_binary_hls import (
+    ElementwiseBinaryOperation_hls,
+    ElementwiseAdd_hls,
+    ElementwiseSub_hls,
+    ElementwiseMul_hls,
+    ElementwiseDiv_hls,
+    ElementwiseAnd_hls,
+    ElementwiseOr_hls,
+    ElementwiseXor_hls,
+    ElementwiseEqual_hls,
+    ElementwiseLess_hls,
+    ElementwiseLessOrEqual_hls,
+    ElementwiseGreater_hls,
+    ElementwiseGreaterOrEqual_hls,
+    ElementwiseBitwiseAnd_hls,
+    ElementwiseBitwiseOr_hls,
+    ElementwiseBitwiseXor_hls,
+    ElementwiseMaximum_hls,
+    ElementwiseMinimum_hls,
+    ElementwiseFloat2Int_hls,
+    ElementwiseFloatCast_hls,
+)
+=======
+# The base class of all HWCustomOp specializations to HLS backend implementation
+from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
+
+# The base class of all generic custom operations before specializing to either
+# HLS or RTL backend
+from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
+
+# flake8: noqa
+# Disable linting from here, as all import will be flagged E402 and maybe F401
+>>>>>>> 52b8d01f7e62efa7987738eadf32d1c9f9b72162

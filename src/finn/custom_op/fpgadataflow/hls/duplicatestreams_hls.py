@@ -26,10 +26,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from qonnx.custom_op.registry import register_custom_op
+
 from finn.custom_op.fpgadataflow.duplicatestreams import DuplicateStreams
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
-
-from qonnx.custom_op.registry import register_custom_op
 
 
 @register_custom_op
@@ -77,7 +77,7 @@ class DuplicateStreams_hls(DuplicateStreams, HLSBackend):
         in_stream = "hls::stream<ap_uint<%d> > &in0_V" % (i_stream_w)
         inp_streams.append(in_stream)
         commands.append("ap_uint<%d> e = in0_V.read();" % i_stream_w)
-        iters = self.get_number_output_values() // self.get_num_output_streams()
+        iters = self.get_number_output_values()["out0"]
         for i in range(n_outputs):
             out_stream = "hls::stream<ap_uint<%d> > &out%d_V" % (o_stream_w, i)
             inp_streams.append(out_stream)

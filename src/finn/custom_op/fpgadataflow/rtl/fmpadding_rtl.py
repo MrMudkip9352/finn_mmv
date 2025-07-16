@@ -29,8 +29,8 @@
 import math
 import os
 import shutil
-from qonnx.util.basic import roundup_to_integer_multiple
 from qonnx.custom_op.registry import register_custom_op
+from qonnx.util.basic import roundup_to_integer_multiple
 
 from finn.custom_op.fpgadataflow.fmpadding import FMPadding
 from finn.custom_op.fpgadataflow.rtlbackend import RTLBackend

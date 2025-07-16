@@ -32,9 +32,8 @@ import os
 import shutil
 from qonnx.custom_op.general import im2col
 from qonnx.custom_op.general.im2col import compute_conv_output_dim
-from qonnx.custom_op.registry import getCustomOp
+from qonnx.custom_op.registry import getCustomOp, register_custom_op
 from qonnx.util.basic import roundup_to_integer_multiple
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.convolutioninputgenerator import (
     ConvolutionInputGenerator,

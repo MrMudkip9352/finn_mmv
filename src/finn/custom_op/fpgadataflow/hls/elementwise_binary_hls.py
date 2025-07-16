@@ -14,6 +14,9 @@ import textwrap
 # QONNX wrapper to ONNX model graphs
 from qonnx.core.datatype import DataType
 from qonnx.core.modelwrapper import ModelWrapper
+
+# Utility for registering HLSBackend HWCustomOp implementations into the module
+# scope
 from qonnx.custom_op.registry import register_custom_op
 
 # Specializations of the generic HW operator
@@ -23,10 +26,6 @@ import finn.custom_op.fpgadataflow.elementwise_binary as elementwise_binary
 from finn.custom_op.fpgadataflow.elementwise_binary import (  # noqa
     ElementwiseBinaryOperation,
 )
-
-# Utility for registering HLSBackend HWCustomOp implementations into the module
-# scope
-from qonnx.custom_op.registry import register_custom_op
 
 # Base class for specializing HW operators as implemented via HLS
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
