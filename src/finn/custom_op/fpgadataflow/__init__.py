@@ -27,11 +27,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from qonnx.custom_op.registry import register_domain
+
 # The base class of all generic custom operations before specializing to either
 # HLS or RTL backend
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
-
-from qonnx.custom_op.registry import register_domain
 
 # Register FINN domains (module path defaults to domain name)
 register_domain("finn.custom_op.fpgadataflow")

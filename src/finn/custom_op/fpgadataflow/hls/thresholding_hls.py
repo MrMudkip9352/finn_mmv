@@ -31,8 +31,8 @@ import os
 import textwrap
 from math import ceil, log2
 from qonnx.core.datatype import DataType
-from qonnx.util.basic import roundup_to_integer_multiple
 from qonnx.custom_op.registry import register_custom_op
+from qonnx.util.basic import roundup_to_integer_multiple
 
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.thresholding import Thresholding
@@ -607,7 +607,8 @@ class Thresholding_hls(Thresholding, HLSBackend):
             )
             # instantiate a streamer and connect it to the IP
             code_gen_dir = self.get_nodeattr("code_gen_dir_ipgen")
-            swg_rtllib_dir = os.path.join(os.environ["FINN_ROOT"], "finn-rtllib/memstream/hdl/")
+            axi_dir = os.path.join(os.environ["FINN_ROOT"], "finn-rtllib/axi/hdl/")
+            ms_rtllib_dir = os.path.join(os.environ["FINN_ROOT"], "finn-rtllib/memstream/hdl/")
             file_suffix = "_memstream_wrapper.v"
             # automatically find memstream verilog component in code generation directory
             for fname in os.listdir(code_gen_dir):
@@ -616,9 +617,9 @@ class Thresholding_hls(Thresholding, HLSBackend):
             strm_tmpl_name = strm_tmpl[:-2]
             sourcefiles = [
                 os.path.join(code_gen_dir, strm_tmpl),
-                swg_rtllib_dir + "axilite_if.v",
-                swg_rtllib_dir + "memstream_axi.sv",
-                swg_rtllib_dir + "memstream.sv",
+                axi_dir + "axilite.sv",
+                ms_rtllib_dir + "memstream_axi.sv",
+                ms_rtllib_dir + "memstream.sv",
             ]
             for f in sourcefiles:
                 cmd += ["add_files -copy_to %s -norecurse %s" % (source_target, f)]

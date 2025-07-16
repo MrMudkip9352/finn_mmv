@@ -29,7 +29,6 @@ import numpy as np
 import os
 import shutil
 import warnings
-
 from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.rtlbackend import RTLBackend
