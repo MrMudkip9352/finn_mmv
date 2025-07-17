@@ -31,6 +31,9 @@ from qonnx.custom_op.registry import register_domain
 # Register FINN domains (module path defaults to domain name)
 register_domain("finn.custom_op.fpgadataflow.rtl")
 
+# flake8: noqa
+# Disable linting from here, as all import will be flagged E402 and maybe F401
+
 # Import all RTL custom ops - they will auto-register via @register_op decorator
 from finn.custom_op.fpgadataflow.rtl.convolutioninputgenerator_rtl import (
     ConvolutionInputGenerator_rtl,
