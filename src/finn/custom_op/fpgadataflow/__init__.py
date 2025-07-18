@@ -27,14 +27,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# flake8: noqa
+# Disable linting from here, as all import will be flagged E402 and maybe F401
+
 # The base class of all generic custom operations before specializing to either
 # HLS or RTL backend
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
-
-# Domain "finn.custom_op.fpgadataflow" matches module path - no registration needed
-
-# flake8: noqa
-# Disable linting from here, as all import will be flagged E402 and maybe F401
 
 # Import all custom ops - they will be discovered automatically via namespace
 import finn.custom_op.fpgadataflow.elementwise_binary

@@ -26,8 +26,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Domain "finn.custom_op.fpgadataflow.rtl" matches module path - no registration needed
-# Import all RTL custom ops - they will be discovered automatically via namespace
+# flake8: noqa
+# Disable linting from here, as all import will be flagged E402 and maybe F401
+
+# Import all RTL custom ops - they will auto-register via @register_op decorator
 from finn.custom_op.fpgadataflow.rtl.convolutioninputgenerator_rtl import (
     ConvolutionInputGenerator_rtl,
 )

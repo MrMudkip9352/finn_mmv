@@ -26,8 +26,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Domain "finn.custom_op.fpgadataflow.hls" matches module path - no registration needed
-
 # flake8: noqa
 # Disable linting from here, as all import will be flagged E402 and maybe F401
 
@@ -83,4 +81,3 @@ from finn.custom_op.fpgadataflow.hls.thresholding_hls import Thresholding_hls
 from finn.custom_op.fpgadataflow.hls.tlastmarker_hls import TLastMarker_hls
 from finn.custom_op.fpgadataflow.hls.upsampler_hls import UpsampleNearestNeighbour_hls
 from finn.custom_op.fpgadataflow.hls.vectorvectoractivation_hls import VVAU_hls
-
