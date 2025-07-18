@@ -31,7 +31,6 @@ import math
 import numpy as np
 import warnings
 from qonnx.core.datatype import DataType
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
@@ -75,7 +74,6 @@ from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 #       -the folded shape is not defined
 
 
-@register_custom_op
 class IODMA_hls(HWCustomOp, HLSBackend):
     """Class that corresponds to finn-hlslib DMA function(s)."""
 

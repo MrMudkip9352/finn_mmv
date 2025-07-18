@@ -30,12 +30,10 @@
 import numpy as np
 import warnings
 from qonnx.core.datatype import DataType
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
 
-@register_custom_op
 class FMPadding_Pixel(HWCustomOp):
     def __init__(self, onnx_node, **kwargs):
         super().__init__(onnx_node, **kwargs)

@@ -28,7 +28,6 @@
 
 import os
 import shutil
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.rtlbackend import RTLBackend
 from finn.custom_op.fpgadataflow.streamingdatawidthconverter import (
@@ -36,7 +35,6 @@ from finn.custom_op.fpgadataflow.streamingdatawidthconverter import (
 )
 
 
-@register_custom_op
 class StreamingDataWidthConverter_rtl(StreamingDataWidthConverter, RTLBackend):
     """Class that corresponds to finn-rtllib datawidth converter
     module."""

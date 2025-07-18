@@ -32,7 +32,7 @@ from onnx import TensorProto, helper
 from qonnx.core.datatype import DataType
 from qonnx.core.modelwrapper import ModelWrapper
 from qonnx.custom_op.general.im2col import compute_conv_output_dim
-from qonnx.custom_op.registry import getCustomOp, register_custom_op
+from qonnx.custom_op.registry import getCustomOp
 from qonnx.util.basic import qonnx_make_model
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
@@ -43,7 +43,6 @@ from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 #     = (1, OFMDim, OFMDim, (ConvKernelDim^2)*IFMChannels)
 
 
-@register_custom_op
 class ConvolutionInputGenerator(HWCustomOp):
     """Abstraction layer for HW implementation of ConvolutionInputGenerator"""
 

@@ -31,7 +31,6 @@ import os
 import textwrap
 from math import ceil, log2
 from qonnx.core.datatype import DataType
-from qonnx.custom_op.registry import register_custom_op
 from qonnx.util.basic import roundup_to_integer_multiple
 
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
@@ -50,7 +49,6 @@ from finn.util.data_packing import (
 # the ... here can be any shape (representing groups of vectors)
 
 
-@register_custom_op
 class Thresholding_hls(Thresholding, HLSBackend):
     """Class that corresponds to finn-hls Thresholding_Batch function."""
 

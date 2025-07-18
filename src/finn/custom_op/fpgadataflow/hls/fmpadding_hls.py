@@ -26,13 +26,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.fmpadding import FMPadding
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 
 
-@register_custom_op
 class FMPadding_hls(FMPadding, HLSBackend):
     """Corresponds to finn-hlslib FMPadding_Batch function.
     Pads input image by given amount."""

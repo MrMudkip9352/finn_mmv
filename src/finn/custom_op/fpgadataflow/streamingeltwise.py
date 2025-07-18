@@ -30,12 +30,10 @@
 import numpy as np
 import warnings
 from qonnx.core.datatype import DataType
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
 
-@register_custom_op
 class StreamingEltwise(HWCustomOp):
     """Abstraction layer for HW implementation of StreamingEltwise"""
 

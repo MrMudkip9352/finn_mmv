@@ -17,7 +17,6 @@ from qonnx.core.modelwrapper import ModelWrapper
 
 # Utility for registering HLSBackend HWCustomOp implementations into the module
 # scope
-from qonnx.custom_op.registry import register_custom_op
 
 # Specializations of the generic HW operator
 import finn.custom_op.fpgadataflow.elementwise_binary as elementwise_binary
@@ -41,7 +40,6 @@ RAM_STYLES = {
 
 
 # HLS Backend specialization of the binary elementwise operation operator
-@register_custom_op
 class ElementwiseBinaryOperation_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation, HLSBackend
@@ -620,7 +618,6 @@ class ElementwiseBinaryOperation_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise addition of two inputs
-@register_custom_op
 class ElementwiseAdd_hls(  # noqa: Class name does not follow
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseAdd
 ):
@@ -628,7 +625,6 @@ class ElementwiseAdd_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise subtraction of two inputs
-@register_custom_op
 class ElementwiseSub_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseSub
@@ -637,7 +633,6 @@ class ElementwiseSub_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise multiplication of two inputs
-@register_custom_op
 class ElementwiseMul_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseMul
@@ -646,7 +641,6 @@ class ElementwiseMul_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise division of two inputs
-@register_custom_op
 class ElementwiseDiv_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseDiv
@@ -657,7 +651,6 @@ class ElementwiseDiv_hls(  # noqa: Class name does not follow
 # TODO: ElementwiseMod_hls - Requires extra attribute selecting the function
 
 # Derive a specialization to implement elementwise logical and of two inputs
-@register_custom_op
 class ElementwiseAnd_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseAnd
@@ -666,7 +659,6 @@ class ElementwiseAnd_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise logical or of two inputs
-@register_custom_op
 class ElementwiseOr_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseOr
@@ -675,7 +667,6 @@ class ElementwiseOr_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise logical xor of two inputs
-@register_custom_op
 class ElementwiseXor_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseXor
@@ -684,7 +675,6 @@ class ElementwiseXor_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise equal of two inputs
-@register_custom_op
 class ElementwiseEqual_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseEqual
@@ -693,7 +683,6 @@ class ElementwiseEqual_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise less of two inputs
-@register_custom_op
 class ElementwiseLess_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseLess
@@ -702,7 +691,6 @@ class ElementwiseLess_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise less or equal of two inputs
-@register_custom_op
 class ElementwiseLessOrEqual_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseLessOrEqual
@@ -711,7 +699,6 @@ class ElementwiseLessOrEqual_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise greater of two inputs
-@register_custom_op
 class ElementwiseGreater_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseGreater
@@ -721,7 +708,6 @@ class ElementwiseGreater_hls(  # noqa: Class name does not follow
 
 # Derive a specialization to implement elementwise greater or equal of two
 # inputs
-@register_custom_op
 class ElementwiseGreaterOrEqual_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseGreaterOrEqual
@@ -730,7 +716,6 @@ class ElementwiseGreaterOrEqual_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise bitwise and of two inputs
-@register_custom_op
 class ElementwiseBitwiseAnd_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseBitwiseAnd
@@ -739,7 +724,6 @@ class ElementwiseBitwiseAnd_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise bitwise or of two inputs
-@register_custom_op
 class ElementwiseBitwiseOr_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseBitwiseOr
@@ -748,7 +732,6 @@ class ElementwiseBitwiseOr_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise bitwise xor of two inputs
-@register_custom_op
 class ElementwiseBitwiseXor_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseBitwiseXor
@@ -757,7 +740,6 @@ class ElementwiseBitwiseXor_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise maximum of two inputs
-@register_custom_op
 class ElementwiseMaximum_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseMaximum
@@ -766,7 +748,6 @@ class ElementwiseMaximum_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise minimum of two inputs
-@register_custom_op
 class ElementwiseMinimum_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseMinimum
@@ -775,7 +756,6 @@ class ElementwiseMinimum_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise minimum of two inputs
-@register_custom_op
 class ElementwiseFloat2Int_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseFloat2Int
@@ -811,7 +791,6 @@ class ElementwiseFloat2Int_hls(  # noqa: Class name does not follow
 
 
 # Derive a specialization to implement elementwise casting
-@register_custom_op
 class ElementwiseFloatCast_hls(  # noqa: Class name does not follow
     # CapWords convention
     ElementwiseBinaryOperation_hls, elementwise_binary.ElementwiseFloatCast

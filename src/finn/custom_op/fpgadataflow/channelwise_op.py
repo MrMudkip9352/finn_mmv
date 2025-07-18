@@ -31,7 +31,6 @@ import onnxruntime as rt
 import warnings
 from onnx import TensorProto, helper
 from qonnx.core.datatype import DataType
-from qonnx.custom_op.registry import register_custom_op
 from qonnx.util.basic import qonnx_make_model
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
@@ -74,7 +73,6 @@ def get_smallest_possible(vals):
         return DataType["INT64"]
 
 
-@register_custom_op
 class ChannelwiseOp(HWCustomOp):
     """Abstraction layer for HW implementation of ChannelwiseOp."""
 

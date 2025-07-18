@@ -32,7 +32,7 @@ import os
 import shutil
 from qonnx.custom_op.general import im2col
 from qonnx.custom_op.general.im2col import compute_conv_output_dim
-from qonnx.custom_op.registry import getCustomOp, register_custom_op
+from qonnx.custom_op.registry import getCustomOp
 from qonnx.util.basic import roundup_to_integer_multiple
 
 from finn.custom_op.fpgadataflow.convolutioninputgenerator import (
@@ -53,7 +53,6 @@ from finn.custom_op.fpgadataflow.rtlbackend import RTLBackend
 # NOTE: "Parallel" implementation style not yet implemented in this version!
 
 
-@register_custom_op
 class ConvolutionInputGenerator_rtl(ConvolutionInputGenerator, RTLBackend):
     """Class that corresponds to finn-rtllib swg module.
     Generates an RTL ConvolutionInputGenerator implementation

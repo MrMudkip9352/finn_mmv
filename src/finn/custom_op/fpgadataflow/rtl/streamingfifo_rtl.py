@@ -29,13 +29,11 @@ import numpy as np
 import os
 import shutil
 import warnings
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.rtlbackend import RTLBackend
 from finn.custom_op.fpgadataflow.streamingfifo import StreamingFIFO
 
 
-@register_custom_op
 class StreamingFIFO_rtl(StreamingFIFO, RTLBackend):
     def __init__(self, onnx_node, **kwargs):
         super().__init__(onnx_node, **kwargs)

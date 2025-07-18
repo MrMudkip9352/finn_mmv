@@ -29,7 +29,6 @@
 import numpy as np
 import os
 from qonnx.core.datatype import DataType
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.rtlbackend import RTLBackend
 from finn.custom_op.fpgadataflow.vectorvectoractivation import VVAU
@@ -37,7 +36,6 @@ from finn.util.basic import is_versal
 from finn.util.data_packing import npy_to_rtlsim_input, rtlsim_output_to_npy
 
 
-@register_custom_op
 class VVAU_rtl(VVAU, RTLBackend):
     """Class that corresponds to finn-rtl Vector Vector Unit."""
 

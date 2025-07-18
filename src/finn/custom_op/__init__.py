@@ -1,4 +1,4 @@
-# Copyright (C) 2023, Advanced Micro Devices, Inc.
+# Copyright (C) 2024, Advanced Micro Devices, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,5 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Domain "finn.custom_op.fpgadataflow.rtl" matches module path - no registration needed
-# Import all RTL custom ops - they will be discovered automatically via namespace
-from finn.custom_op.fpgadataflow.rtl.convolutioninputgenerator_rtl import (
-    ConvolutionInputGenerator_rtl,
-)
-from finn.custom_op.fpgadataflow.rtl.fmpadding_rtl import FMPadding_rtl
-from finn.custom_op.fpgadataflow.rtl.matrixvectoractivation_rtl import MVAU_rtl
-from finn.custom_op.fpgadataflow.rtl.streamingdatawidthconverter_rtl import (
-    StreamingDataWidthConverter_rtl,
-)
-from finn.custom_op.fpgadataflow.rtl.streamingfifo_rtl import StreamingFIFO_rtl
-from finn.custom_op.fpgadataflow.rtl.thresholding_rtl import Thresholding_rtl
-from finn.custom_op.fpgadataflow.rtl.vectorvectoractivation_rtl import VVAU_rtl
+# Import submodules to make them accessible
+from . import fpgadataflow

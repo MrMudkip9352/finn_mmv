@@ -27,20 +27,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from qonnx.custom_op.registry import register_domain
-
 # The base class of all generic custom operations before specializing to either
 # HLS or RTL backend
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
-# Register FINN domains (module path defaults to domain name)
-register_domain("finn.custom_op.fpgadataflow")
-register_domain("finn.custom_op.fpgadataflow.rtl")
+# Domain "finn.custom_op.fpgadataflow" matches module path - no registration needed
 
 # flake8: noqa
 # Disable linting from here, as all import will be flagged E402 and maybe F401
 
-# Import all custom ops - they will auto-register via @register_op decorator
+# Import all custom ops - they will be discovered automatically via namespace
 import finn.custom_op.fpgadataflow.elementwise_binary
 from finn.custom_op.fpgadataflow.addstreams import AddStreams
 from finn.custom_op.fpgadataflow.channelwise_op import ChannelwiseOp

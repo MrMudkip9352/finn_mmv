@@ -27,13 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from qonnx.custom_op.registry import register_custom_op
 
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.streamingeltwise import StreamingEltwise
 
 
-@register_custom_op
 class StreamingEltwise_hls(StreamingEltwise, HLSBackend):
     """Class that corresponds to finn-hlslib StreamingEltwise function."""
 
