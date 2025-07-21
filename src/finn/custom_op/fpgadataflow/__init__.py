@@ -30,10 +30,6 @@
 # flake8: noqa
 # Disable linting from here, as all import will be flagged E402 and maybe F401
 
-# The base class of all generic custom operations before specializing to either
-# HLS or RTL backend
-from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
-
 # Import all custom ops - they will be discovered automatically via namespace
 import finn.custom_op.fpgadataflow.elementwise_binary
 from finn.custom_op.fpgadataflow.addstreams import AddStreams
@@ -47,6 +43,10 @@ from finn.custom_op.fpgadataflow.duplicatestreams import DuplicateStreams
 from finn.custom_op.fpgadataflow.fmpadding import FMPadding
 from finn.custom_op.fpgadataflow.fmpadding_pixel import FMPadding_Pixel
 from finn.custom_op.fpgadataflow.globalaccpool import GlobalAccPool
+
+# The base class of all generic custom operations before specializing to either
+# HLS or RTL backend
+from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 from finn.custom_op.fpgadataflow.labelselect import LabelSelect
 from finn.custom_op.fpgadataflow.lookup import Lookup
 from finn.custom_op.fpgadataflow.matrixvectoractivation import MVAU
