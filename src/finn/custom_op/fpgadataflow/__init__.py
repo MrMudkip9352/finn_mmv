@@ -40,6 +40,30 @@ from finn.custom_op.fpgadataflow.convolutioninputgenerator import (
 )
 from finn.custom_op.fpgadataflow.downsampler import DownSampler
 from finn.custom_op.fpgadataflow.duplicatestreams import DuplicateStreams
+
+# Also import ElementwiseBinary variants
+from finn.custom_op.fpgadataflow.elementwise_binary import (
+    ElementwiseAdd,
+    ElementwiseAnd,
+    ElementwiseBinaryOperation,
+    ElementwiseBitwiseAnd,
+    ElementwiseBitwiseOr,
+    ElementwiseBitwiseXor,
+    ElementwiseDiv,
+    ElementwiseEqual,
+    ElementwiseFloat2Int,
+    ElementwiseFloatCast,
+    ElementwiseGreater,
+    ElementwiseGreaterOrEqual,
+    ElementwiseLess,
+    ElementwiseLessOrEqual,
+    ElementwiseMaximum,
+    ElementwiseMinimum,
+    ElementwiseMul,
+    ElementwiseOr,
+    ElementwiseSub,
+    ElementwiseXor,
+)
 from finn.custom_op.fpgadataflow.fmpadding import FMPadding
 from finn.custom_op.fpgadataflow.fmpadding_pixel import FMPadding_Pixel
 from finn.custom_op.fpgadataflow.globalaccpool import GlobalAccPool
