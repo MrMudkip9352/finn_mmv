@@ -31,7 +31,6 @@
 # Disable linting from here, as all import will be flagged E402 and maybe F401
 
 # Import all custom ops - they will be discovered automatically via namespace
-import finn.custom_op.fpgadataflow.elementwise_binary
 from finn.custom_op.fpgadataflow.addstreams import AddStreams
 from finn.custom_op.fpgadataflow.channelwise_op import ChannelwiseOp
 from finn.custom_op.fpgadataflow.concat import StreamingConcat
