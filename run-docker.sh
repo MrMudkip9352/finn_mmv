@@ -69,14 +69,17 @@ SCRIPT=$(readlink -f "$0")
 # Absolute path this script is in, thus /home/user/bin
 SCRIPTPATH=$(dirname "$SCRIPT")
 
+if [ -z "$FINN_DEPS_DIR" ];then
+  FINN_DEPS_DIR="$SCRIPTPATH/deps"
+fi
+
 # the settings below will be taken from environment variables if available,
-# otherwise the defaults below will be used
+# otherwise the defaults below will be used (only works when variables are unset)
 : ${JUPYTER_PORT=8888}
 : ${JUPYTER_PASSWD_HASH=""}
 : ${NETRON_PORT=8081}
 : ${LOCALHOST_URL="localhost"}
 : ${NUM_DEFAULT_WORKERS=4}
-: ${FINN_DEPS_DIR="$SCRIPTPATH/deps"}
 : ${FINN_SSH_KEY_DIR="$SCRIPTPATH/ssh_keys"}
 : ${PLATFORM_REPO_PATHS="/opt/xilinx/platforms"}
 : ${XRT_DEB_VERSION="xrt_202220.2.14.354_22.04-amd64-xrt"}
@@ -88,7 +91,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 : ${FINN_DOCKER_BUILD_EXTRA=""}
 : ${FINN_SKIP_DEP_REPOS="0"}
 : ${FINN_SKIP_BOARD_FILES="0"}
-: ${OHMYXILINX="${SCRIPTPATH}/deps/oh-my-xilinx"}
+: ${OHMYXILINX="$FINN_DEPS_DIR/oh-my-xilinx"}
 : ${NVIDIA_VISIBLE_DEVICES=""}
 : ${DOCKER_BUILDKIT="1"}
 : ${FINN_SINGULARITY=""}
