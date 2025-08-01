@@ -50,13 +50,93 @@ module add_multi import mvu_pkg::*; #(
 	output	logic [SUM_WIDTH-1:0]  sum
 );
 
-	localparam int unsigned  L = $clog2(N);  // Number of levels with reductions
+//---------------------------------------------------------------------------
+// Implementation Choice
+typedef enum {
+	LOOP,	// Combinatorial addition in loop followed by delay regs
+	TREE,	// Binary adder tree with balanced pipelining as allowed by DEPTH
+	COMP	// Use fitting pre-built compressor if available, fallback to TREE otherwise
+} impl_e;
+localparam impl_e  IMPL =
+`ifdef ADD_MULTI_IMPL
+	1? `ADD_MULTI_IMPL :
+`endif
+	TREE;
 
-	uwire [SUM_WIDTH-1:0]  sum0;
-	if(L < 1) begin : genTrivial
-		assign	sum0 = arg[0];
-	end : genTrivial
+//===========================================================================
+// Catch all Cases with matching pre-built Compressors if IMPL == COMP
+
+`define CATCH_COMP(n,w,d) \
+else if((IMPL == COMP) && !RESET_ZERO && (N == n) && (ARG_WIDTH == w) && (DEPTH >= d) && (0 <= ARG_LO)) begin : gen``n``u``w``_d``d \
+	initial $info("Building add_multi(N=%0d, D=%0d, W=%0d) as COMP.", N, DEPTH, ARG_WIDTH); \
+\
+	uwire [N*ARG_WIDTH-1:0]  in; \
+	uwire [SUM_WIDTH  -1:0]  out; \
+	for(genvar  i = 0; i < N; i++) begin \
+		for(genvar  j = 0; j < ARG_WIDTH; j++) begin \
+			assign	in[j*N+i] = arg[i][j]; \
+		end \
+	end \
+	comp``n``u``w``_d``d comp ( \
+		.clk, .en, \
+		.in, .out \
+	); \
+\
+	localparam int unsigned  SUM_DELAY = DEPTH - d; \
+	if(SUM_DELAY == 0)  assign  sum = out; \
+	else begin : genDelay \
+		logic [SUM_WIDTH-1:0]  SumZ[SUM_DELAY] = '{ default: 'x }; \
+		always_ff @(posedge clk) begin \
+			if(rst)  SumZ <= '{ default: 'x }; \
+			else begin \
+				for(int unsigned  i = 0; i < SUM_DELAY-1; i++)  SumZ[i] <= SumZ[i+1]; \
+				SumZ[SUM_DELAY-1] <= out; \
+			end \
+		end \
+		assign	sum = SumZ[0]; \
+	end : genDelay \
+end : gen``n``u``w``_d``d
+
+if(0) begin end
+//- Pre-built Compressor Matching -------
+// N = 32, D = 4+
+`CATCH_COMP(32,6,4)
+`CATCH_COMP(32,16,4)
+// N = 47, D = 4+
+`CATCH_COMP(47,5,4)
+`CATCH_COMP(47,6,4)
+`CATCH_COMP(47,15,4)
+// N = 56, D = 5+
+`CATCH_COMP(56,7,5)
+`CATCH_COMP(56,8,5)
+`CATCH_COMP(56,17,5)
+// N = 60, D = 5+
+`CATCH_COMP(60,8,5)
+`CATCH_COMP(60,18,5)
+// N = 72, D = 5+
+`CATCH_COMP(72,7,5)
+`CATCH_COMP(72,8,5)
+`CATCH_COMP(72,17,5)
+`undef CATCH_COMP
+
+//- Generic Behavioral Addition ---------
+else begin : genGeneric
+
+	// Number of tree levels with reductions
+	localparam int unsigned  L = (IMPL == LOOP)? 0 : $clog2(N);
+
+	logic [SUM_WIDTH-1:0]  sum0;
+	if(L < 1) begin : genLoop
+		initial $info("Building add_multi(N=%0d, D=%0d, W=%0d) as LOOP.", N, DEPTH, ARG_WIDTH);
+
+		always_comb begin
+			sum0 = 0;
+			foreach(arg[i])  sum0 += arg[i];
+		end
+	end : genLoop
 	else begin : genTree
+		initial $info("Building add_multi(N=%0d, D=%0d, W=%0d) as TREE.", N, DEPTH, ARG_WIDTH);
+
 		localparam int unsigned  D = L < DEPTH? L : DEPTH;  // Pipeline stages absorbed by tree
 
 		// Compute the count of decendents for all nodes in the reduction trees.
@@ -128,5 +208,7 @@ module add_multi import mvu_pkg::*; #(
 		end
 		assign	sum = SumZ[0];
 	end : genDelay
+
+end : genGeneric
 
 endmodule : add_multi
