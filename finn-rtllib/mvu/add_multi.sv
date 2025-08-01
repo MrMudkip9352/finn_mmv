@@ -61,7 +61,7 @@ localparam impl_e  IMPL =
 `ifdef ADD_MULTI_IMPL
 	1? `ADD_MULTI_IMPL :
 `endif
-	TREE;
+	COMP;
 
 //===========================================================================
 // Catch all Cases with matching pre-built Compressors if IMPL == COMP
