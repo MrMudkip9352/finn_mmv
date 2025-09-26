@@ -80,13 +80,19 @@ class RoundAndClipThresholds(Transformation):
                 elif dtype.is_fixed_point():
                     # Round thresholds up to nearest representable value
                     # of the input datatype
-                    new_thresholds = np.clip(np.ceil(thresholds / dtype.scale_factor()) * dtype.scale_factor(), dtype.min(), dtype.max() + dtype.scale_factor())
+                    new_thresholds = np.clip(
+                        np.ceil(thresholds / dtype.scale_factor()) * dtype.scale_factor(),
+                        dtype.min(),
+                        dtype.max() + dtype.scale_factor(),
+                    )
                     new_thresholds = new_thresholds.astype(np.float32)
                     model.set_initializer(node.input[1], new_thresholds)
                     # find smallest underlying integer representation for the thresholds
                     max_val = dtype.max() / dtype.scale_factor() + 1
                     tdt_int = DataType.get_smallest_possible(-max_val - 1)
-                    tdt = DataType[f"FIXED<{tdt_int.bitwidth()},{tdt_int.bitwidth() - dtype.frac_bits()}>"]
+                    tdt = DataType[
+                        f"FIXED<{tdt_int.bitwidth()},{tdt_int.bitwidth() - dtype.frac_bits()}>"
+                    ]
 
                 model.set_tensor_datatype(node.input[1], tdt)
                 # If hw op we need to set the weight data type attribute as well

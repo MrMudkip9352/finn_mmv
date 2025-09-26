@@ -357,7 +357,9 @@ def test_round_and_clip_thresholds_fxp(i_dtype, o_dtype, n_elems):
 
     max_val = i_dtype.max() / i_dtype.scale_factor() + 1
     new_tdt_int = DataType.get_smallest_possible(-max_val - 1)
-    new_tdt = DataType[f"FIXED<{new_tdt_int.bitwidth()},{new_tdt_int.bitwidth() - i_dtype.frac_bits()}>"]
+    new_tdt = DataType[
+        f"FIXED<{new_tdt_int.bitwidth()},{new_tdt_int.bitwidth() - i_dtype.frac_bits()}>"
+    ]
     assert model.get_tensor_datatype("thresholds") == new_tdt
     assert model.get_tensor_datatype("out") == o_dtype
 
@@ -365,7 +367,10 @@ def test_round_and_clip_thresholds_fxp(i_dtype, o_dtype, n_elems):
     # values must be float32. No other type-cast or type promotion may happen.
     assert model.get_initializer("thresholds").dtype == np.float32
     # After rounding, all thresholds must be integers represented as float32
-    assert all(x.is_integer() for x in model.get_initializer("thresholds").flatten() / new_tdt.scale_factor())
+    assert all(
+        x.is_integer()
+        for x in model.get_initializer("thresholds").flatten() / new_tdt.scale_factor()
+    )
 
     out_produced = oxe.execute_onnx(model, {"inp": inp})["out"]
 
@@ -458,7 +463,9 @@ def test_round_and_clip_thresholds_fxp_float(i_dtype, o_dtype, n_elems):
 
     max_val = i_dtype.max() / i_dtype.scale_factor() + 1
     new_tdt_int = DataType.get_smallest_possible(-max_val - 1)
-    new_tdt = DataType[f"FIXED<{new_tdt_int.bitwidth()},{new_tdt_int.bitwidth() - i_dtype.frac_bits()}>"]
+    new_tdt = DataType[
+        f"FIXED<{new_tdt_int.bitwidth()},{new_tdt_int.bitwidth() - i_dtype.frac_bits()}>"
+    ]
     assert model.get_tensor_datatype("thresholds") == new_tdt
     assert model.get_tensor_datatype("out") == o_dtype
 
@@ -466,7 +473,10 @@ def test_round_and_clip_thresholds_fxp_float(i_dtype, o_dtype, n_elems):
     # values must be float32. No other type-cast or type promotion may happen.
     assert model.get_initializer("thresholds").dtype == np.float32
     # After rounding, all thresholds must be integers represented as float32
-    assert all(x.is_integer() for x in model.get_initializer("thresholds").flatten() / new_tdt.scale_factor())
+    assert all(
+        x.is_integer()
+        for x in model.get_initializer("thresholds").flatten() / new_tdt.scale_factor()
+    )
 
     out_produced = oxe.execute_onnx(model, {"inp": inp})["out"]
 
