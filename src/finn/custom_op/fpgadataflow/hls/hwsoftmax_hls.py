@@ -60,7 +60,7 @@ class HWSoftmax_hls(HWSoftmax, HLSBackend):
 
     def blackboxfunction(self):
         self.code_gen_dict["$BLACKBOXFUNCTION$"] = [
-            """
+            f"""
             void {self.onnx_node.name}(
                 hls::stream<hls::vector<TI,SIMD>> &in0_V,
                 hls::stream<hls::vector<float,SIMD>> &out0_V
