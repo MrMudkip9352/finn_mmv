@@ -7,9 +7,9 @@
 # @author       Shane T. Fleming <shane.fleming@amd.com>
 ############################################################################
 
+import numpy as np
 import os
 
-from finn.custom_op.fpgadataflow import templates
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.hwsoftmax import HWSoftmax
 from finn.util.basic import CppBuilder
@@ -18,6 +18,8 @@ from finn.util.basic import CppBuilder
 class HWSoftmax_hls(HWSoftmax, HLSBackend):
     def __init__(self, onnx_node, **kwargs):
         super().__init__(onnx_node, **kwargs)
+        self.set_nodeattr("hls_style", "freerunning")
+        self.set_nodeattr("cpp_interface", "hls_vector")
 
     def get_nodeattr_types(self):
         my_attrs = {}
@@ -111,48 +113,6 @@ class HWSoftmax_hls(HWSoftmax, HLSBackend):
         builder.build(code_gen_dir)
         self.set_nodeattr("executable_path", builder.executable_path)
 
-    def code_generation_cppsim(self, model):
-        """Generates c++ code for simulation (cppsim)."""
-        self.code_gen_dict["$READNPYDATA$"] = [""]
-        self.code_gen_dict["$DATAOUTSTREAM$"] = [""]
-        self.code_gen_dict["$STREAMDECLARATIONS$"] = [""]
-        node = self.onnx_node
-        path = self.get_nodeattr("code_gen_dir_cppsim")
-        self.code_gen_dict["$AP_INT_MAX_W$"] = [str(self.get_ap_int_max_w())]
-        self.generate_params(model, path)
-        self.global_includes()
-        self.defines("cppsim")
-        self.pragmas()
-        oshape = self.get_folded_output_shape()
-        oshape_str = str(oshape).replace("(", "{").replace(")", "}")
-        self.code_gen_dict["$DOCOMPUTE$"] = [
-            f"""
-            static hls::stream<hls::vector<TI,SIMD>>  in0_V;
-            static hls::stream<hls::vector<float,SIMD>>  out0_V;
-
-            npy2vectorstream<TI, float, SIMD>("{path}/input_0.npy", in0_V);
-            int stream_size = in0_V.size();
-            static SoftMax<TI, float, W, SIMD> sm_inst;
-
-            while(out0_V.size() != stream_size){{
-                sm_inst.execute(in0_V, out0_V);
-            }}
-
-            vectorstream2npy<float, float, SIMD>(out0_V,{oshape_str}, "{path}/output_0.npy");
-            """
-        ]
-        self.save_as_npy()
-
-        template = templates.docompute_template
-
-        code_gen_dir = self.get_nodeattr("code_gen_dir_cppsim") + f"/execute_{node.op_type}.cpp"
-        with open(code_gen_dir, "w") as f:
-            for key in self.code_gen_dict:
-                # transform list into long string separated by '\n'
-                code_gen_line = "\n".join(self.code_gen_dict[key])
-                template = template.replace(key, code_gen_line)
-            f.write(template)
-
     def ipgen_extra_includes(self):
         """Add kernel-specific include paths."""
         import os
@@ -160,3 +120,7 @@ class HWSoftmax_hls(HWSoftmax, HLSBackend):
         kernel_dir = os.path.dirname(os.path.abspath(__file__))
         utils_dir = os.path.join(os.path.dirname(kernel_dir), "utils")
         return f"-I{kernel_dir} -I{utils_dir}"
+
+    def timeout_value(self):
+        """Set timeout value for HLS functions defined for one clock cycle"""
+        self.code_gen_dict["$TIMEOUT_VALUE$"] = [str(np.prod(self.get_normal_input_shape()))]
