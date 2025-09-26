@@ -14,6 +14,7 @@ from scipy.special import softmax
 
 from finn.custom_op.fpgadataflow.hwcustomop import HWCustomOp
 
+
 class HWSoftmax(HWCustomOp):
     """Abstraction layer for HW implementation of SoftMax layers."""
 
@@ -26,11 +27,10 @@ class HWSoftmax(HWCustomOp):
             "SIMD": ("i", False, 1),
             # FINN DataTypes for inputs, weights, outputs
             "input_data_type": ("s", True, ""),
-            "NumChannels" : ("i", False, 128)
+            "NumChannels": ("i", False, 128),
         }
         my_attrs.update(super().get_nodeattr_types())
         return my_attrs
-
 
     def get_normal_input_shape(self, ind=0):
         return self.get_nodeattr("ifm_dim")
@@ -46,7 +46,7 @@ class HWSoftmax(HWCustomOp):
         node = self.onnx_node
         input_data = context[node.input[0]]
         output_data = softmax(input_data, axis=-1)
-        context[node.output[0]] = output_data 
+        context[node.output[0]] = output_data
 
     def get_input_datatype(self, ind=0):
         """Returns FINN DataType of input."""
