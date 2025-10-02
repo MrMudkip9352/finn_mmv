@@ -177,14 +177,16 @@ class InferThresholdingLayer(Transformation):
                 idt = model.get_tensor_datatype(thl_input)
                 tdt = model.get_tensor_datatype(thl_threshold)
 
-                # only infer layers where input and thresholds are integers or fp32
+                # only infer layers where input and thresholds are integers, floats, or fixed-point
                 idt_int = idt.is_integer()
                 tdt_int = tdt.is_integer()
                 idt_fp = idt in ["FLOAT32", "FLOAT16"]
                 tdt_fp = tdt in ["FLOAT32", "FLOAT16"]
-                if not (idt_int or idt_fp):
+                idt_fxp = idt.is_fixed_point()
+                tdt_fxp = tdt.is_fixed_point()
+                if not (idt_int or idt_fp or idt_fxp):
                     continue
-                if not (tdt_int or tdt_fp):
+                if not (tdt_int or tdt_fp or tdt_fxp):
                     continue
 
                 # check layout of inputs/outputs, and convert if needed
