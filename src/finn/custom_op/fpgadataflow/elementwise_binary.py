@@ -347,27 +347,29 @@ class ElementwiseBinaryOperation(HWCustomOp):
             # generation
             self.set_nodeattr("lhs_style", "const")
             lhs_dtype = self.get_input_datatype(0)
-            if lhs_dtype.is_integer():
-                # Minimum and maximum "weight" on the left hand side, determining
-                # the range of values which needs to be represented
-                _min = lhs.min()
-                _max = lhs.max()
-                # Determine whether signed or unsigned type is required for
-                # representing the weights and select the largest "signed magnitude"
-                _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
-                # Smallest data type large enough to represent this range of values
-                lhs_dtype = DataType.get_smallest_possible(_mag)
-            elif lhs_dtype.is_fixed_point():
-                # Convert the fixed-point array to corresponding integers and get
-                # smallest integer representation
-                lhs = lhs / lhs_dtype.scale_factor()
-                _min = lhs.min()
-                _max = lhs.max()
-                _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
-                dtype = DataType.get_smallest_possible(_mag)
-                _total_bits = dtype.bitwidth() if dtype.signed() else dtype.bitwidth() + 1
-                _integer_bits = _total_bits - lhs_dtype.frac_bits()
-                lhs_dtype = DataType[f"FIXED<{_total_bits},{_integer_bits}>"]
+            # ignore minimization for floats
+            if not lhs_dtype.get_canonical_name().startswith("FLOAT"):
+                if lhs_dtype.is_integer():
+                    # Minimum and maximum "weight" on the left hand side, determining
+                    # the range of values which needs to be represented
+                    _min = lhs.min()
+                    _max = lhs.max()
+                    # Determine whether signed or unsigned type is required for
+                    # representing the weights and select the largest "signed magnitude"
+                    _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
+                    # Smallest data type large enough to represent this range of values
+                    lhs_dtype = DataType.get_smallest_possible(_mag)
+                elif lhs_dtype.is_fixed_point():
+                    # Convert the fixed-point array to corresponding integers and get
+                    # smallest integer representation
+                    lhs = lhs / lhs_dtype.scale_factor()
+                    _min = lhs.min()
+                    _max = lhs.max()
+                    _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
+                    dtype = DataType.get_smallest_possible(_mag)
+                    _total_bits = dtype.bitwidth() if dtype.signed() else dtype.bitwidth() + 1
+                    _integer_bits = _total_bits - lhs_dtype.frac_bits()
+                    lhs_dtype = DataType[f"FIXED<{_total_bits},{_integer_bits}>"]
 
             # Update the corresponding data type attribute of the node
             self.set_nodeattr("lhs_dtype", lhs_dtype.name)
@@ -383,27 +385,29 @@ class ElementwiseBinaryOperation(HWCustomOp):
             # generation
             self.set_nodeattr("rhs_style", "const")
             rhs_dtype = self.get_input_datatype(1)
-            if rhs_dtype.is_integer():
-                # Minimum and maximum "weight" on the left hand side, determining
-                # the range of values which needs to be represented
-                _min = rhs.min()
-                _max = rhs.max()
-                # Determine whether signed or unsigned type is required for
-                # representing the weights and select the largest "signed magnitude"
-                _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
-                # Smallest data type large enough to represent this range of values
-                rhs_dtype = DataType.get_smallest_possible(_mag)
-            elif rhs_dtype.is_fixed_point():
-                # Convert the fixed-point array to corresponding integers and get
-                # smallest integer representation
-                rhs = rhs / rhs_dtype.scale_factor()
-                _min = rhs.min()
-                _max = rhs.max()
-                _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
-                dtype = DataType.get_smallest_possible(_mag)
-                _total_bits = dtype.bitwidth() if dtype.signed() else dtype.bitwidth() + 1
-                _integer_bits = _total_bits - rhs_dtype.frac_bits()
-                rhs_dtype = DataType[f"FIXED<{_total_bits},{_integer_bits}>"]
+            # ignore minimization for floats
+            if not rhs_dtype.get_canonical_name().startswith("FLOAT"):
+                if rhs_dtype.is_integer():
+                    # Minimum and maximum "weight" on the left hand side, determining
+                    # the range of values which needs to be represented
+                    _min = rhs.min()
+                    _max = rhs.max()
+                    # Determine whether signed or unsigned type is required for
+                    # representing the weights and select the largest "signed magnitude"
+                    _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
+                    # Smallest data type large enough to represent this range of values
+                    rhs_dtype = DataType.get_smallest_possible(_mag)
+                elif rhs_dtype.is_fixed_point():
+                    # Convert the fixed-point array to corresponding integers and get
+                    # smallest integer representation
+                    rhs = rhs / rhs_dtype.scale_factor()
+                    _min = rhs.min()
+                    _max = rhs.max()
+                    _mag = _max if _min > 0 else _min if (abs(_min) > _max) else (-_max - 1)
+                    dtype = DataType.get_smallest_possible(_mag)
+                    _total_bits = dtype.bitwidth() if dtype.signed() else dtype.bitwidth() + 1
+                    _integer_bits = _total_bits - rhs_dtype.frac_bits()
+                    rhs_dtype = DataType[f"FIXED<{_total_bits},{_integer_bits}>"]
 
             # Update the corresponding data type attribute of the node
             self.set_nodeattr("rhs_dtype", rhs_dtype.name)
