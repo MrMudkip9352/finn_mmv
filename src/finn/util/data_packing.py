@@ -407,11 +407,19 @@ def finnpy_to_packed_bytearray(
 def packed_bytearray_to_finnpy(
     packed_bytearray,
     dtype,
-    output_shape=None,
+    output_shape,
     reverse_inner=False,
     reverse_endian=False,
     **kwargs,
 ):
+    """
+    Given a packed numpy uint8 ndarray, unpack it into a FINN array of
+    given DataType.
+
+    output_shape must be specified to remove padding from the
+    packed dimension
+    """
+
     if (not issubclass(type(packed_bytearray), np.ndarray)) or packed_bytearray.dtype != np.uint8:
         raise Exception("packed_bytearray_to_finnpy needs NumPy uint8 arrays")
     if packed_bytearray.ndim == 0:
