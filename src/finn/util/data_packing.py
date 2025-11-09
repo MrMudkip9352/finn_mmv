@@ -405,12 +405,7 @@ def finnpy_to_packed_bytearray(
 
 
 def packed_bytearray_to_finnpy(
-    packed_bytearray,
-    dtype,
-    output_shape,
-    reverse_inner=False,
-    reverse_endian=False,
-    **kwargs,
+    packed_bytearray, dtype, output_shape, reverse_inner=False, reverse_endian=False
 ):
     """
     Given a packed numpy uint8 ndarray, unpack it into a FINN array of
