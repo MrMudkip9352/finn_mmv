@@ -76,10 +76,17 @@ module mem_bank #(
 
 	(* ram_style=RAM_STYLE *)
 	logic [WIDTH-1:0] Mem [DEPTH-1:0]; // The Mem for this bank
+	logic [WIDTH-1:0] d_out_reg;
+	
 	always_ff @(posedge clk) begin
 		if(wr_en)  Mem[wr_addr] <= d_in;
-		if(rd_en)  d_out <= Mem[rd_addr];
 	end
+	
+	always_ff @(posedge clk) begin
+		if(rd_en)  d_out_reg <= Mem[rd_addr];
+	end
+	
+	assign d_out = d_out_reg;
 
 endmodule : mem_bank
 
