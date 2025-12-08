@@ -76,17 +76,19 @@ module mem_bank #(
 
 	(* ram_style=RAM_STYLE *)
 	logic [WIDTH-1:0] Mem [DEPTH-1:0]; // The Mem for this bank
-	logic [WIDTH-1:0] d_out_reg;
+	logic [WIDTH-1:0] Dout1;
+	logic [WIDTH-1:0] Dout2 = 'x; /* Absorbed register */
 	
 	always_ff @(posedge clk) begin
 		if(wr_en)  Mem[wr_addr] <= d_in;
 	end
 	
 	always_ff @(posedge clk) begin
-		if(rd_en)  d_out_reg <= Mem[rd_addr];
+		if(rd_en) Dout1 <= Mem[rd_addr];
+		Dout2 <= Dout1;
 	end
 	
-	assign d_out = d_out_reg;
+	assign d_out = Dout2;
 
 endmodule : mem_bank
 
@@ -381,18 +383,22 @@ module inner_shuffle #(
 	assign irdy = !WrJobsDone[0] || !WrJobsDone[1];
 
 	// Forward the current RD_PATTERN row onto the next pipeline stage
-	rotidx_vec_t RdPat = RD_INIT_PAT;
-	rotidx_vec_t RdPat_D = RD_INIT_PAT; // The fowarded rotation pattern
+	rotidx_vec_t RdPat    = RD_INIT_PAT;
+	rotidx_vec_t RdPat_D  = RD_INIT_PAT; // The fowarded rotation pattern
+	rotidx_vec_t RdPat_D2 = RD_INIT_PAT; // The fowarded rotation pattern (extra delay)
 	always_ff @(posedge clk) begin : rd_pattern_col_forwarding
 		if (rst) begin
 			OsbVld <= 0;
+			OsbVld_D <= 0;
 			RdPat_D <= RD_INIT_PAT;
 		end
 		else begin
 			OsbVld <= !rd_guard;
 			OsbVld_D <= OsbVld;
 			if (rd_inc) RdPat_D <= RdPat;
+			if (osb_rdy) RdPat_D2 <= RdPat_D;	
 			if(OsbVld & rd_guard & !osb_rdy) OsbVld <= 1;
+			OsbVld_D <= OsbVld;
 		end
 	end : rd_pattern_col_forwarding
 
@@ -400,7 +406,7 @@ module inner_shuffle #(
 	// and the Read rotation from the previous clock cycle that was
 	// used to generate the read addresses.
     	uwire [SIMD-1:0][BITS-1:0] remapped_data; // remapped output
-	for(genvar i=0; i<SIMD; i++) assign remapped_data[i] = d_out[RdPat_D[i]];
+	for(genvar i=0; i<SIMD; i++) assign remapped_data[i] = d_out[RdPat_D2[i]];
 
 	// the next permutation of the rd pattern
 	rotidx_vec_t rd_pat_next;
@@ -453,7 +459,7 @@ module inner_shuffle #(
 		.rst(rst),
 
 		.idat(remapped_data),
-		.ivld(OsbVld),
+		.ivld(OsbVld_D),
 		.irdy(osb_rdy),
 
 		.odat(odat),
