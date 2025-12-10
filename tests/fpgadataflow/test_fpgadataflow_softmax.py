@@ -29,7 +29,7 @@ from finn.transformation.fpgadataflow.prepare_rtlsim import PrepareRTLSim
 from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
 from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
 
-test_fpga_part: str = "xcv80-lsva4737-2MHP-e-S"
+test_fpga_part: str = "xczu7ev-ffvc1156-2-e"
 target_clk_ns = 5
 export_onnx_path = "pytest_softmax_dut.onnx"
 
