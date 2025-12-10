@@ -102,7 +102,6 @@ def compile_sim_obj(top_module_name, source_list, sim_out_dir, debug=False, beha
         cmd_xelab.append("-L")
         cmd_xelab.append(lib)
 
-
     if locate_glbl() is not None:
         cmd_xelab.insert(1, "work.glbl")
 
