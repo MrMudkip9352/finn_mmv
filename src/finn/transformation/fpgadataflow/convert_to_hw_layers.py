@@ -1776,6 +1776,7 @@ class InferHWSoftmax(Transformation):
                 graph.node.remove(n)
         return (model, graph_modified)
 
+
 class InferShuffle(Transformation):
     """
     Find transpose layers with (optionally) reshape layers around them
