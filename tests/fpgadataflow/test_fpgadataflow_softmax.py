@@ -45,11 +45,6 @@ class SoftMaxSimple(nn.Module):
 
 
 def create_softmax_model(io_shape, idt):
-    """
-    Create a quantized softmax model.
-    Input and output are quantized to Int8ActPerTensorFloat, this is to make sure
-    that the softmax layer is followed by a Quant node.
-    """
     dut = SoftMaxSimple()
     input = torch.rand(io_shape)
     export_qonnx(dut, input, export_onnx_path, opset_version=11)
@@ -66,7 +61,6 @@ def create_softmax_model(io_shape, idt):
 @pytest.mark.fpgadataflow
 @pytest.mark.vivado
 def test_fpgadataflow_hwsoftmax(simd, idt, exec_mode, ifm_dim):
-    #    os.environ["LIVENESS_THRESHOLD"] = "500000"  # Need to bump this up for these RTL sims
     idt = DataType[idt]
     io_shape = ifm_dim
     tollerance = 1e-5
