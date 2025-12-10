@@ -6,9 +6,8 @@
 #
 # @author       Shane T. Fleming <shane.fleming@amd.com>
 ############################################################################
-import numpy as np
+
 import warnings
-from onnx.helper import make_node
 from qonnx.core.datatype import DataType
 from scipy.special import softmax
 
@@ -38,10 +37,6 @@ class HWSoftmax(HWCustomOp):
     def get_normal_output_shape(self, ind=0):
         return self.get_normal_input_shape()
 
-    def get_number_output_values(self):
-        folded_oshape = self.get_folded_output_shape()
-        return np.prod(folded_oshape[:-1])
-
     def execute_node(self, context, graph):
         node = self.onnx_node
         input_data = context[node.input[0]]
@@ -55,16 +50,6 @@ class HWSoftmax(HWCustomOp):
         # is able to represent zeros
         assert data_type.allowed(0), "DataType must support zero"
         return data_type
-
-    def make_shape_compatible_op(self, model):
-        shape = self.get_normal_input_shape()
-        # create an ONNX Softmax node with the same shape as this one
-        return make_node(
-            "Softmax",
-            inputs=[self.onnx_node.input[0]],
-            outputs=[self.onnx_node.output[0]],
-            shape=list(shape),
-        )
 
     def infer_node_datatype(self, model):
         node = self.onnx_node
@@ -81,9 +66,6 @@ class HWSoftmax(HWCustomOp):
         # set output datatype from property
         odt = self.get_output_datatype()
         model.set_tensor_datatype(node.output[0], odt)
-
-    def verify_node(self):
-        raise NotImplementedError
 
     def get_instream_width(self, ind=0):
         ibits = self.get_input_datatype().bitwidth()

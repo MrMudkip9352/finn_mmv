@@ -8,18 +8,14 @@
 ############################################################################
 
 import numpy as np
-import os
 
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.hwsoftmax import HWSoftmax
-from finn.util.basic import CppBuilder
 
 
 class HWSoftmax_hls(HWSoftmax, HLSBackend):
     def __init__(self, onnx_node, **kwargs):
         super().__init__(onnx_node, **kwargs)
-        self.set_nodeattr("hls_style", "freerunning")
-        self.set_nodeattr("cpp_interface", "hls_vector")
 
     def get_nodeattr_types(self):
         my_attrs = {}
@@ -85,33 +81,6 @@ class HWSoftmax_hls(HWSoftmax, HLSBackend):
 
     def execute_node(self, context, graph):
         HLSBackend.execute_node(self, context, graph)
-
-    def compile_singlenode_code(self):
-        """Builds the bash script for compilation using the CppBuilder from
-        finn.util.basic and executes the script to produce the executable."""
-        code_gen_dir = self.get_nodeattr("code_gen_dir_cppsim")
-        builder = CppBuilder()
-        # to enable additional debug features please uncommand the next line
-        # builder.append_includes("-DDEBUG")
-        builder.append_includes("-I$FINN_ROOT/src/finn/qnn-data/cpp")
-        builder.append_includes("-I$FINN_ROOT/deps/cnpy/")
-        builder.append_includes("-I$FINN_ROOT/deps/finn-hlslib")
-        builder.append_includes("-I{}/include".format(os.environ["HLS_PATH"]))
-        builder.append_includes("-I{}/include".format(os.environ["VITIS_PATH"]))
-        builder.append_includes("--std=c++14")
-        builder.append_includes("-O3")
-        builder.append_sources(code_gen_dir + "/*.cpp")
-        builder.append_sources("$FINN_ROOT/deps/cnpy/cnpy.cpp")
-        builder.append_includes("-lz")
-        builder.append_includes("-fno-builtin -fno-inline")
-        builder.append_includes('-Wl,-rpath,"$VITIS_PATH/lnx64/lib/csim"')
-        builder.append_includes("-L$VITIS_PATH/lnx64/lib/csim -lhlsmc++-GCC46")
-        builder.append_includes('-Wl,-rpath,"$VITIS_PATH/lnx64/tools/fpo_v7_1"')
-        builder.append_includes("-L$VITIS_PATH/lnx64/tools/fpo_v7_1 -lgmp -lmpfr")
-        builder.append_includes("-lIp_floating_point_v7_1_bitacc_cmodel")
-        builder.set_executable_path(code_gen_dir + "/node_model")
-        builder.build(code_gen_dir)
-        self.set_nodeattr("executable_path", builder.executable_path)
 
     def timeout_value(self):
         """Set timeout value for HLS functions defined for one clock cycle"""
