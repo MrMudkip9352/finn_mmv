@@ -32,7 +32,7 @@ def locate_glbl() -> Optional[str]:
     return None
 
 
-def compile_sim_obj(top_module_name, source_list, sim_out_dir, debug=False, behav=True):
+def compile_sim_obj(top_module_name, source_list, sim_out_dir, debug=False, behav=False):
     # create a .prj file with the source files
     with open(sim_out_dir + "/rtlsim.prj", "w") as f:
         glbl = locate_glbl()
