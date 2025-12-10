@@ -44,7 +44,7 @@ class SoftMaxSimple(nn.Module):
         return x
 
 
-def create_nonquant_model(io_shape, idt):
+def create_softmax_model(io_shape, idt):
     """
     Create a quantized softmax model.
     Input and output are quantized to Int8ActPerTensorFloat, this is to make sure
@@ -71,7 +71,7 @@ def test_fpgadataflow_hwsoftmax(simd, idt, exec_mode, ifm_dim):
     io_shape = ifm_dim
     tollerance = 1e-5
 
-    model = create_nonquant_model(io_shape, idt)
+    model = create_softmax_model(io_shape, idt)
 
     input = gen_finn_dt_tensor(idt, io_shape)
     in_name = model.graph.input[0].name
