@@ -99,8 +99,8 @@ module inner_shuffle #(
 	uwire [BITS-1:0]                d_in      [SIMD-1:0];
 	uwire [BITS-1:0]                d_out     [SIMD-1:0];
 	uwire  rd_req_en;
-	uwire [SIMD-1:0] rd_req_rdy; 
-	uwire  rd_req_rdy_all = &rd_req_rdy; 
+	uwire [SIMD-1:0] rd_req_rdy;
+	uwire  rd_req_rdy_all = &rd_req_rdy;
 	logic [$clog2(BANK_DEPTH)-1:0]  raddr     [SIMD-1:0];
 	uwire rd_dat_vld [SIMD-1:0];
 	uwire rd_dat_rdy;
@@ -408,7 +408,7 @@ module inner_shuffle #(
 		end
 	end : rd_pattern_assignment
 
-	
+
 	//=======================================================================
 	skid #(
 		.DATA_WIDTH($bits(packed_rotidx_vec_t))
@@ -416,7 +416,7 @@ module inner_shuffle #(
 	rd_pattern_skid (
 		.clk(clk),
 		.rst(rst),
- 
+
 		.idat(packed_rotidx_vec_t'(RdPat)),
 		.ivld(rd_req_en),
 		.irdy(rd_pattern_sb_irdy),
@@ -425,7 +425,7 @@ module inner_shuffle #(
 		.ovld(rd_pattern_sb_ovld),
 		.ordy(osb_rdy && rd_dat_vld[0])
 	);
-	
+
 	assign rd_pat_forwarded = rotidx_vec_t'(rd_pat_forwarded_packed);
 	// --------------------------------------------------------------------------
 
@@ -433,7 +433,7 @@ module inner_shuffle #(
 	// Output SkidBuffer -- Used to decouple control signals for timing
 	// improvements
 	uwire osb_vld;
-	assign osb_vld = rd_pattern_sb_ovld && rd_dat_vld[0]; 
+	assign osb_vld = rd_pattern_sb_ovld && rd_dat_vld[0];
 	skid #(
 		.DATA_WIDTH(SIMD*BITS)
 	)

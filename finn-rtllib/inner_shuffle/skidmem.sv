@@ -5,10 +5,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * @brief	BRAM with two output registers and streaming interface with backpressure.
- * @author	Shane T. Fleming	
+ * @author	Shane T. Fleming
  *
  * @description
- *  This module implements a simple BRAM wrapper with two output 
+ *  This module implements a simple BRAM wrapper with two output
  *  registers to allow Vivado to fuse them into the BRAM for better timing.
  *  The read side features streaming interfaces with proper backpressure
  *  handling via an integrated skid buffer.
@@ -90,7 +90,7 @@ module skidmem #(
 				AddrReg <= rd_addr;
 				AddrVld <= 1;
 			end
-			else 
+			else begin
 				AddrVld <= 0;
 			end
 		end
@@ -103,7 +103,7 @@ module skidmem #(
 			Dout1    <= 'x;
 			Dout1Vld <= 0;
 		end
-		else 
+		else
 	            Dout1    <= Mem[AddrReg];
 		    if(stage1_advance) begin
 			if(AddrVld) begin
