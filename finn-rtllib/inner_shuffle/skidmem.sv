@@ -24,7 +24,7 @@ module skidmem #(
 	int unsigned  WIDTH,
 	int unsigned  DEPTH,
 	int unsigned  FEED_STAGES = 0,
-	parameter string  RAM_STYLE = "auto"
+	parameter     RAM_STYLE = "auto"
 )(
 	input	logic  clk,
 	input	logic  rst,
