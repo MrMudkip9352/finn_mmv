@@ -105,10 +105,10 @@ module elasticmem #(
 		end
 		else begin
 	            Dout1    <= Mem[AddrReg];
-		    if(stage1_advance) 
-			if(AddrVld) 
+		    if(stage1_advance)
+			if(AddrVld)
 				Dout1Vld <= 1;
-			else 
+			else
 				Dout1Vld <= 0;
 		end
 	end
@@ -120,12 +120,12 @@ module elasticmem #(
 			Dout2    <= 'x;
 			Dout2Vld <= 0;
 		end
-		else if(stage2_advance) 
-			if(Dout1Vld) begin 
+		else if(stage2_advance)
+			if(Dout1Vld) begin
 				Dout2    <= Dout1;
 				Dout2Vld <= 1;
 			end
-			else 
+			else
 				Dout2Vld <= 0;
 	end
 
