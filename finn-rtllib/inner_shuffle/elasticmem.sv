@@ -8,7 +8,7 @@
  * @author	Shane T. Fleming
  *
  * @description
- *  This module implements a simple BRAM wrapper with two output
+ *  This module implements a simple BRAM/URAM wrapper with two output
  *  registers to allow Vivado to fuse them into the BRAM for better timing.
  *  The read side features streaming interfaces with proper backpressure
  *  handling via an integrated skid buffer.
@@ -20,7 +20,7 @@
  *  during temporary downstream stalls while maintaining data ordering.
  ***************************************************************************/
 
-module skidmem #(
+module elasticmem #(
 	int unsigned  WIDTH,
 	int unsigned  DEPTH,
 	int unsigned  FEED_STAGES = 0,
@@ -103,15 +103,13 @@ module skidmem #(
 			Dout1    <= 'x;
 			Dout1Vld <= 0;
 		end
-		else
+		else begin
 	            Dout1    <= Mem[AddrReg];
-		    if(stage1_advance) begin
-			if(AddrVld) begin
+		    if(stage1_advance) 
+			if(AddrVld) 
 				Dout1Vld <= 1;
-			end
-			else begin
+			else 
 				Dout1Vld <= 0;
-		    end
 		end
 	end
 
@@ -122,15 +120,13 @@ module skidmem #(
 			Dout2    <= 'x;
 			Dout2Vld <= 0;
 		end
-		else if(stage2_advance) begin
-			if(Dout1Vld) begin
+		else if(stage2_advance) 
+			if(Dout1Vld) begin 
 				Dout2    <= Dout1;
 				Dout2Vld <= 1;
 			end
-			else begin
+			else 
 				Dout2Vld <= 0;
-			end
-		end
 	end
 
 	//-----------------------------------------------------------------------
@@ -151,4 +147,4 @@ module skidmem #(
 		.ordy (rd_dat_rdy)
 	);
 
-endmodule : skidmem
+endmodule : elasticmem

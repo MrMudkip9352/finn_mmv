@@ -108,7 +108,7 @@ module inner_shuffle #(
 	uwire rd_pattern_sb_irdy;
 	uwire rd_pattern_sb_ovld;
 	for(genvar i = 0; i<SIMD; i++) begin : gen_mem_banks
-		skidmem #(
+		elasticmem #(
 			.WIDTH(BITS),
 			.DEPTH(BANK_DEPTH),
 			.RAM_STYLE(RAM_STYLE)
