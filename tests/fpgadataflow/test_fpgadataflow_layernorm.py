@@ -21,6 +21,7 @@ from qonnx.transformation.infer_shapes import InferShapes
 from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 import finn.core.onnx_exec as oxe
+import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
 
 test_fpga_part = "xcv80-lsva4737-2MHP-e-s"
 target_clk_ns = 5
@@ -74,7 +75,12 @@ def test_fpgadataflow_layernorm(idt, ishape):
     input_t = {model.graph.input[0].name: input}
 
     y_ref = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
-    print(y_ref)
 
     model = model.transform(InferShapes())
     model = model.transform(InferDataTypes())
+
+    model = model.transform(to_hw.InferLayerNorm())
+    input_t = {model.graph.input[0].name: input}
+
+    y_hw = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
+    assert np.allclose(y_ref, y_hw, rtol=1e-3, atol=2**-4)
