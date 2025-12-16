@@ -111,7 +111,7 @@ module elasticmem #(
 
 	//-----------------------------------------------------------------------
 	// Stage 2: Second Output Register (candidate for BRAM fusion)
-	
+
 	always_ff @(posedge clk) begin
 		if(rst) begin
 			Dout2    <= 'x;
@@ -122,7 +122,7 @@ module elasticmem #(
 		    Dout2Vld <= Dout1Vld;
 		end
 	end
-	
+
 
 	//-----------------------------------------------------------------------
 	// Skid Buffer for Backpressure Handling
