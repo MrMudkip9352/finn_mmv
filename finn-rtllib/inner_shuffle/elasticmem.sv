@@ -68,13 +68,12 @@ module elasticmem #(
 
 	//-----------------------------------------------------------------------
 	// Pipeline Control Logic
-	uwire  stage2_advance, stage1_advance, stage0_advance;
 	logic  skid_irdy;
 
-	uwire  req_fire = rd_req_vld && rd_req_rdy;
-	assign stage2_advance = !Dout2Vld || skid_irdy;
-	assign stage1_advance = !Dout1Vld || stage2_advance;
-	assign stage0_advance = !AddrVld  || stage1_advance;
+	//uwire  req_fire = rd_req_vld && rd_req_rdy;
+	uwire stage2_advance = !Dout2Vld || skid_irdy;
+	uwire stage1_advance = !Dout1Vld || stage2_advance;
+	uwire stage0_advance = !AddrVld  || stage1_advance;
 	assign rd_req_rdy = stage0_advance;
 
 	//-----------------------------------------------------------------------
@@ -85,14 +84,8 @@ module elasticmem #(
 			AddrVld <= 0;
 		end
 		else if(stage0_advance) begin
-			if(req_fire) begin
-				AddrReg <= rd_addr;
-				AddrVld <= 1;
-			end
-			else begin
-				AddrReg <= 'x;
-				AddrVld <= 0;
-			end
+			AddrReg <= rd_addr;
+			AddrVld <= rd_req_vld;
 		end
 	end
 
@@ -103,26 +96,24 @@ module elasticmem #(
 			Dout1    <= 'x;
 			Dout1Vld <= 0;
 		end
-		else begin
-		    Dout1Vld <= AddrVld && stage1_advance;
-		    Dout1    <= Mem[AddrReg];
+		else if(stage1_advance) begin
+			Dout1Vld <= AddrVld;
+			Dout1    <= Mem[AddrReg];
 		end
 	end
 
 	//-----------------------------------------------------------------------
 	// Stage 2: Second Output Register (candidate for BRAM fusion)
-
 	always_ff @(posedge clk) begin
 		if(rst) begin
 			Dout2    <= 'x;
 			Dout2Vld <= 0;
 		end
 		else if(stage2_advance) begin
-		    Dout2 <= Dout1;
-		    Dout2Vld <= Dout1Vld;
+			Dout2Vld <= Dout1Vld;
+			Dout2    <= Dout1;
 		end
 	end
-
 
 	//-----------------------------------------------------------------------
 	// Skid Buffer for Backpressure Handling
