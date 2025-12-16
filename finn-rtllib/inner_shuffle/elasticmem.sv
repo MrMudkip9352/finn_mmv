@@ -51,12 +51,12 @@ module elasticmem #(
 	logic [WIDTH-1:0]  Mem [DEPTH-1:0];
 
 	// Pipeline registers
-	logic [$clog2(DEPTH)-1:0]  AddrReg;
-	logic                      AddrVld;
-	logic [WIDTH-1:0]          Dout1;
-	logic                      Dout1Vld;
-	logic [WIDTH-1:0]          Dout2;
-	logic                      Dout2Vld;
+	logic [$clog2(DEPTH)-1:0]  AddrReg  = 'x;
+	logic                      AddrVld  =  0;
+	logic [WIDTH-1:0]          Dout1    = 'x;
+	logic                      Dout1Vld =  0;
+	logic [WIDTH-1:0]          Dout2    = 'x;
+	logic                      Dout2Vld =  0;
 
 	//-----------------------------------------------------------------------
 	// Write Port
@@ -69,13 +69,12 @@ module elasticmem #(
 	//-----------------------------------------------------------------------
 	// Pipeline Control Logic
 	uwire  stage2_advance, stage1_advance, stage0_advance;
-	uwire  req_fire;
 	logic  skid_irdy;
 
-	assign req_fire = rd_req_vld && rd_req_rdy;
+	uwire  req_fire = rd_req_vld && rd_req_rdy;
 	assign stage2_advance = !Dout2Vld || skid_irdy;
 	assign stage1_advance = !Dout1Vld || stage2_advance;
-	assign stage0_advance = !AddrVld || stage1_advance;
+	assign stage0_advance = !AddrVld  || stage1_advance;
 	assign rd_req_rdy = stage0_advance;
 
 	//-----------------------------------------------------------------------
@@ -91,6 +90,7 @@ module elasticmem #(
 				AddrVld <= 1;
 			end
 			else begin
+				AddrReg <= 'x;
 				AddrVld <= 0;
 			end
 		end
@@ -104,30 +104,25 @@ module elasticmem #(
 			Dout1Vld <= 0;
 		end
 		else begin
-	            Dout1    <= Mem[AddrReg];
-		    if(stage1_advance)
-			if(AddrVld)
-				Dout1Vld <= 1;
-			else
-				Dout1Vld <= 0;
+		    Dout1Vld <= AddrVld && stage1_advance;
+		    Dout1    <= Mem[AddrReg];
 		end
 	end
 
 	//-----------------------------------------------------------------------
 	// Stage 2: Second Output Register (candidate for BRAM fusion)
+	
 	always_ff @(posedge clk) begin
 		if(rst) begin
 			Dout2    <= 'x;
 			Dout2Vld <= 0;
 		end
-		else if(stage2_advance)
-			if(Dout1Vld) begin
-				Dout2    <= Dout1;
-				Dout2Vld <= 1;
-			end
-			else
-				Dout2Vld <= 0;
+		else if(stage2_advance) begin
+		    Dout2 <= Dout1;
+		    Dout2Vld <= Dout1Vld;
+		end
 	end
+	
 
 	//-----------------------------------------------------------------------
 	// Skid Buffer for Backpressure Handling

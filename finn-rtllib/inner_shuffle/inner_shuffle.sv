@@ -432,8 +432,7 @@ module inner_shuffle #(
 	//=======================================================================
 	// Output SkidBuffer -- Used to decouple control signals for timing
 	// improvements
-	uwire osb_vld;
-	assign osb_vld = rd_pattern_sb_ovld && rd_dat_vld[0];
+	uwire osb_vld = rd_pattern_sb_ovld && rd_dat_vld[0];
 	skid #(
 		.DATA_WIDTH(SIMD*BITS)
 	)
