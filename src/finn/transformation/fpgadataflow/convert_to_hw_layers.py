@@ -2034,8 +2034,8 @@ class InferLayerNorm(Transformation):
                 bias_is_zero = not np.any(bias)
                 if not (scale_is_one and (bias_is_zero or bias is not None)):
                     warnings.warn(
-                        "%s: Scale is not one or bias is not zero. Can't be converted to HWCustomOp"
-                        % node.name
+                        f"""{node.name}: Scale is not one or bias is not zero.
+                        Can't be converted to HWCustomOp. Please run ExtractNormScaleBias first."""
                     )
                     continue
                 act_in = node.input[0]
@@ -2045,6 +2045,12 @@ class InferLayerNorm(Transformation):
                 # Get datatypes
                 idt = model.get_tensor_datatype(act_in)
                 odt = model.get_tensor_datatype(act_out)
+                if not idt == odt == DataType["FLOAT32"]:
+                    warnings.warn(
+                        f"""{node.name}: Datatype is not float32,
+                        currently only fp32 layernorm is supported."""
+                    )
+                    continue
 
                 norm_axis = helper.get_node_attr_value(node, "axis")
                 if model.get_tensor_layout(act_in) == DataLayout.NCHW:
