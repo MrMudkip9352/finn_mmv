@@ -2026,10 +2026,13 @@ class InferLayerNorm(Transformation):
             node_ind += 1
             if node.op_type == "LayerNormalization":
                 scale = model.get_initializer(node.input[1])
-                bias = model.get_initializer(node.input[2])
+                if len(node.input) > 2:
+                    bias = model.get_initializer(node.input[2])
+                else:
+                    bias = None
                 scale_is_one = (scale == 1).all()
                 bias_is_zero = not np.any(bias)
-                if not (scale_is_one and bias_is_zero):
+                if not (scale_is_one and (bias_is_zero or bias is not None)):
                     warnings.warn(
                         "%s: Scale is not one or bias is not zero. Can't be converted to HWCustomOp"
                         % node.name

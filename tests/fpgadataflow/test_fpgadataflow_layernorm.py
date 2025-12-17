@@ -30,21 +30,23 @@ from finn.transformation.fpgadataflow.prepare_ip import PrepareIP
 from finn.transformation.fpgadataflow.prepare_rtlsim import PrepareRTLSim
 from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
 from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
+from finn.transformation.streamline.extract_norm_scale_bias import ExtractNormScaleBias
 
 test_fpga_part = "xcvc1902-vsva2197-2MP-e-S"
 target_clk_ns = 5
 
 
-def create_layernorm_model(idt, ishape, epsilon):
+def create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon):
     scale_bias_shape = [ishape[-1]]
     inp = helper.make_tensor_value_info("inp", TensorProto.FLOAT, ishape)
     outp = helper.make_tensor_value_info("outp", TensorProto.FLOAT, ishape)
     scale = helper.make_tensor_value_info("scale", TensorProto.FLOAT, scale_bias_shape)
-    bias = helper.make_tensor_value_info("bias", TensorProto.FLOAT, scale_bias_shape)
+    if has_bias:
+        bias = helper.make_tensor_value_info("bias", TensorProto.FLOAT, scale_bias_shape)
 
     ln_node = helper.make_node(
         "LayerNormalization",
-        inputs=["inp", "scale", "bias"],
+        inputs=["inp", "scale", "bias"] if has_bias else ["inp", "scale"],
         outputs=["outp"],
         name="Layernorm_0",
         epsilon=epsilon,
@@ -54,15 +56,24 @@ def create_layernorm_model(idt, ishape, epsilon):
 
     # Create model
     graph = helper.make_graph(
-        nodes=[ln_node], name="LayerNorm_graph", inputs=[inp, scale, bias], outputs=[outp]
+        nodes=[ln_node],
+        name="LayerNorm_graph",
+        inputs=[inp, scale, bias] if has_bias else [inp, scale],
+        outputs=[outp],
     )
     model = qonnx_make_model(graph, producer_name="LayerNorm_graph")
     model = ModelWrapper(model)
 
     # Tensor initializers
-    # set scale and bias to 1 or zero for now
-    model.set_initializer("scale", np.ones(scale_bias_shape, dtype=np.float32))
-    model.set_initializer("bias", np.zeros(scale_bias_shape, dtype=np.float32))
+    if has_scale:
+        scale = gen_finn_dt_tensor(DataType["FLOAT32"], scale_bias_shape)
+    else:
+        scale = np.ones(scale_bias_shape, dtype=np.float32)
+    model.set_initializer("scale", scale)
+
+    if has_bias:
+        bias = gen_finn_dt_tensor(DataType["FLOAT32"], scale_bias_shape)
+        model.set_initializer("bias", bias)
 
     # Tensor data types
     model.set_tensor_datatype("inp", idt)
@@ -76,8 +87,10 @@ def create_layernorm_model(idt, ishape, epsilon):
 @pytest.mark.parametrize("idt", [DataType["FLOAT32"]])
 @pytest.mark.parametrize("ishape", [[1, 16, 48], [1, 32]])
 @pytest.mark.parametrize("simd", [1, 2])
-def test_fpgadataflow_layernorm(idt, ishape, simd):
-    model = create_layernorm_model(idt, ishape, epsilon=9.999999960041972e-13)
+@pytest.mark.parametrize("has_scale", [True, False])
+@pytest.mark.parametrize("has_bias", [True, False])
+def test_fpgadataflow_layernorm(idt, ishape, simd, has_scale, has_bias):
+    model = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon=9.999999960041972e-13)
 
     # reference calculation
     input = gen_finn_dt_tensor(DataType["FLOAT32"], ishape)
@@ -88,7 +101,10 @@ def test_fpgadataflow_layernorm(idt, ishape, simd):
     model = model.transform(InferShapes())
     model = model.transform(InferDataTypes())
 
+    model = model.transform(ExtractNormScaleBias())
+
     model = model.transform(to_hw.InferLayerNorm())
+    model = model.transform(to_hw.InferElementwiseBinaryOperation())
     input_t = {model.graph.input[0].name: input}
 
     y_hw = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
