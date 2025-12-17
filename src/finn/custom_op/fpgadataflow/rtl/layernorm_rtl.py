@@ -10,6 +10,8 @@
 #
 ############################################################################
 
+import math
+import numpy as np
 import os
 import shutil
 
@@ -36,8 +38,14 @@ class LayerNorm_rtl(LayerNorm, RTLBackend):
         template_path = rtllib_dir + "layernorm_wrapper_template.v"
         simd = self.get_nodeattr("SIMD")
         topname = self.get_verilog_top_module_name()
+        n = self.get_normal_input_shape()[-1]
+        assert (
+            n % simd == 0
+        ), """Requirement N (last dim) divisable by SIMD is violated.
+            Please set SIMD to a different value"""
+        assert n // simd > 12, "N/SIMD must be larger than 12 for rsqrt throughput."
         code_gen_dict = {
-            "$N$": int(self.get_normal_input_shape()[-1]),
+            "$N$": int(n),
             "$SIMD$": int(simd),
             "$TOP_MODULE_NAME$": topname,
         }
@@ -115,3 +123,19 @@ class LayerNorm_rtl(LayerNorm, RTLBackend):
             LayerNorm.execute_node(self, context, graph)
         elif mode == "rtlsim":
             RTLBackend.execute_node(self, context, graph)
+
+    def get_exp_cycles(self):
+        simd = self.get_nodeattr("SIMD")
+        idim = self.get_normal_input_shape()
+        n = idim[-1]
+        assert (
+            n % simd == 0
+        ), """Requirement N (last dim) divisable by SIMD is violated.
+            Please set SIMD to a different value"""
+        assert n // simd > 12, "N/SIMD must be larger than 12 for rsqrt throughput."
+
+        val_queue_len_0 = n // simd + math.ceil(math.log2(simd)) * 2 + 7
+        val_queue_len_1 = n // simd + math.ceil(math.log2(simd)) * 2 + 24
+        exp_cycles = val_queue_len_0 + val_queue_len_1 + np.prod(idim) // simd + 5
+
+        return int(exp_cycles)

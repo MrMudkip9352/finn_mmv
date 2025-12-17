@@ -24,6 +24,7 @@ from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 import finn.core.onnx_exec as oxe
 import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
+from finn.analysis.fpgadataflow.exp_cycles_per_layer import exp_cycles_per_layer
 from finn.transformation.fpgadataflow.hlssynth_ip import HLSSynthIP
 from finn.transformation.fpgadataflow.prepare_ip import PrepareIP
 from finn.transformation.fpgadataflow.prepare_rtlsim import PrepareRTLSim
@@ -74,7 +75,7 @@ def create_layernorm_model(idt, ishape, epsilon):
 @pytest.mark.slow
 @pytest.mark.parametrize("idt", [DataType["FLOAT32"]])
 @pytest.mark.parametrize("ishape", [[1, 16, 48], [1, 32]])
-@pytest.mark.parametrize("simd", [1, 6])
+@pytest.mark.parametrize("simd", [1, 2])
 def test_fpgadataflow_layernorm(idt, ishape, simd):
     model = create_layernorm_model(idt, ishape, epsilon=9.999999960041972e-13)
 
@@ -108,3 +109,9 @@ def test_fpgadataflow_layernorm(idt, ishape, simd):
     y_rtl = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
 
     assert np.allclose(y_ref, y_rtl, rtol=1e-3, atol=2**-4)
+
+    cycles_rtlsim = getCustomOp(model.graph.node[0]).get_nodeattr("cycles_rtlsim")
+    exp_cycles_dict = model.analysis(exp_cycles_per_layer)
+    exp_cycles = exp_cycles_dict[model.graph.node[0].name]
+    assert np.isclose(exp_cycles, cycles_rtlsim, atol=10)
+    assert exp_cycles != 0
