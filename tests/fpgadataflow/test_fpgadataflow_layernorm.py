@@ -16,14 +16,21 @@ import numpy as np
 from onnx import TensorProto, helper
 from qonnx.core.datatype import DataType
 from qonnx.core.modelwrapper import ModelWrapper
+from qonnx.custom_op.registry import getCustomOp
+from qonnx.transformation.general import GiveUniqueNodeNames
 from qonnx.transformation.infer_datatypes import InferDataTypes
 from qonnx.transformation.infer_shapes import InferShapes
 from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 import finn.core.onnx_exec as oxe
 import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
+from finn.transformation.fpgadataflow.hlssynth_ip import HLSSynthIP
+from finn.transformation.fpgadataflow.prepare_ip import PrepareIP
+from finn.transformation.fpgadataflow.prepare_rtlsim import PrepareRTLSim
+from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
+from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
 
-test_fpga_part = "xcv80-lsva4737-2MHP-e-s"
+test_fpga_part = "xcvc1902-vsva2197-2MP-e-S"
 target_clk_ns = 5
 
 
@@ -67,7 +74,8 @@ def create_layernorm_model(idt, ishape, epsilon):
 @pytest.mark.slow
 @pytest.mark.parametrize("idt", [DataType["FLOAT32"]])
 @pytest.mark.parametrize("ishape", [[1, 16, 48], [1, 32]])
-def test_fpgadataflow_layernorm(idt, ishape):
+@pytest.mark.parametrize("simd", [1, 6])
+def test_fpgadataflow_layernorm(idt, ishape, simd):
     model = create_layernorm_model(idt, ishape, epsilon=9.999999960041972e-13)
 
     # reference calculation
@@ -84,3 +92,19 @@ def test_fpgadataflow_layernorm(idt, ishape):
 
     y_hw = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
     assert np.allclose(y_ref, y_hw, rtol=1e-3, atol=2**-4)
+
+    model = model.transform(SpecializeLayers(test_fpga_part))
+    model = model.transform(GiveUniqueNodeNames())
+    getCustomOp(model.graph.node[0]).set_nodeattr("SIMD", simd)
+
+    # Execute
+    model = model.transform(SetExecMode("rtlsim"))
+    model = model.transform(PrepareIP(test_fpga_part, target_clk_ns))
+    model = model.transform(HLSSynthIP())
+    model = model.transform(PrepareRTLSim())
+
+    input_t = {model.graph.input[0].name: input}
+
+    y_rtl = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
+
+    assert np.allclose(y_ref, y_rtl, rtol=1e-3, atol=2**-4)

@@ -31,7 +31,7 @@ layernorm #(
 	.FORCE_BEHAVIORAL(1),
 `endif
 	.N($N$),
-	.SIMD($SIMD$),
+	.SIMD($SIMD$)
 )
 impl
 (
