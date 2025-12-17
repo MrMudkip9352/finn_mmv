@@ -25,10 +25,12 @@ from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 import finn.core.onnx_exec as oxe
 import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
 from finn.analysis.fpgadataflow.exp_cycles_per_layer import exp_cycles_per_layer
+from finn.transformation.fpgadataflow.create_stitched_ip import CreateStitchedIP
 from finn.transformation.fpgadataflow.hlssynth_ip import HLSSynthIP
 from finn.transformation.fpgadataflow.prepare_ip import PrepareIP
 from finn.transformation.fpgadataflow.prepare_rtlsim import PrepareRTLSim
 from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
+from finn.transformation.fpgadataflow.set_fifo_depths import InsertAndSetFIFODepths
 from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
 from finn.transformation.streamline.extract_norm_scale_bias import ExtractNormScaleBias
 
@@ -89,7 +91,11 @@ def create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon):
 @pytest.mark.parametrize("simd", [1, 2])
 @pytest.mark.parametrize("has_scale", [True, False])
 @pytest.mark.parametrize("has_bias", [True, False])
-def test_fpgadataflow_layernorm(idt, ishape, simd, has_scale, has_bias):
+@pytest.mark.parametrize(
+    "sim_style",
+    ["node_by_node", pytest.param("stitched_ip", marks=pytest.mark.xfail(reason="sim bug"))],
+)
+def test_fpgadataflow_layernorm(idt, ishape, simd, has_scale, has_bias, sim_style):
     model = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon=9.999999960041972e-13)
 
     # reference calculation
@@ -115,10 +121,17 @@ def test_fpgadataflow_layernorm(idt, ishape, simd, has_scale, has_bias):
     getCustomOp(model.graph.node[0]).set_nodeattr("SIMD", simd)
 
     # Execute
-    model = model.transform(SetExecMode("rtlsim"))
-    model = model.transform(PrepareIP(test_fpga_part, target_clk_ns))
-    model = model.transform(HLSSynthIP())
-    model = model.transform(PrepareRTLSim())
+    if sim_style == "node_by_node":
+        model = model.transform(SetExecMode("rtlsim"))
+        model = model.transform(PrepareIP(test_fpga_part, target_clk_ns))
+        model = model.transform(HLSSynthIP())
+        model = model.transform(PrepareRTLSim())
+    elif sim_style == "stitched_ip":
+        model = model.transform(InsertAndSetFIFODepths(test_fpga_part, target_clk_ns))
+        model = model.transform(PrepareIP(test_fpga_part, target_clk_ns))
+        model = model.transform(HLSSynthIP())
+        model = model.transform(CreateStitchedIP(test_fpga_part, target_clk_ns))
+        model.set_metadata_prop("exec_mode", "rtlsim")
 
     input_t = {model.graph.input[0].name: input}
 
@@ -126,8 +139,9 @@ def test_fpgadataflow_layernorm(idt, ishape, simd, has_scale, has_bias):
 
     assert np.allclose(y_ref, y_rtl, rtol=1e-3, atol=2**-4)
 
-    cycles_rtlsim = getCustomOp(model.graph.node[0]).get_nodeattr("cycles_rtlsim")
-    exp_cycles_dict = model.analysis(exp_cycles_per_layer)
-    exp_cycles = exp_cycles_dict[model.graph.node[0].name]
-    assert np.isclose(exp_cycles, cycles_rtlsim, atol=10)
-    assert exp_cycles != 0
+    if sim_style == "node_by_node":
+        cycles_rtlsim = getCustomOp(model.graph.node[0]).get_nodeattr("cycles_rtlsim")
+        exp_cycles_dict = model.analysis(exp_cycles_per_layer)
+        exp_cycles = exp_cycles_dict[model.graph.node[0].name]
+        assert np.isclose(exp_cycles, cycles_rtlsim, atol=10)
+        assert exp_cycles != 0
