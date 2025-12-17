@@ -70,7 +70,6 @@ module elasticmem #(
 	// Pipeline Control Logic
 	logic  skid_irdy;
 
-	//uwire  req_fire = rd_req_vld && rd_req_rdy;
 	uwire stage2_advance = !Dout2Vld || skid_irdy;
 	uwire stage1_advance = !Dout1Vld || stage2_advance;
 	uwire stage0_advance = !AddrVld  || stage1_advance;
