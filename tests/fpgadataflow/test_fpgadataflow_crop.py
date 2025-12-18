@@ -1,0 +1,74 @@
+############################################################################
+# Copyright (C) 2025, Advanced Micro Devices, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Copyright for portions of this file is held by AMD and Microsoft under
+# MIT license as part of project Brainsmith.
+# All other copyright is held by AMD and is provided under BSD-3-Clause license.
+#
+# Note: This test was originally written by Josh Monson and was adjusted.
+#
+############################################################################
+
+import pytest
+
+import numpy as np
+from onnx import TensorProto, helper
+from qonnx.core.datatype import DataType
+from qonnx.core.modelwrapper import ModelWrapper
+from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
+
+import finn.core.onnx_exec as oxe
+
+
+def make_gather_model(indices, ishape, axis):
+    size = indices.shape[0]
+
+    oshape = [ishape[0], size, ishape[2]]
+
+    # Define the input tensor
+    data = helper.make_tensor_value_info("data", TensorProto.FLOAT, ishape)
+
+    # Define the output tensor
+    output = helper.make_tensor_value_info("output", TensorProto.FLOAT, oshape)
+
+    indices = helper.make_tensor("indices", TensorProto.INT64, [len(indices)], indices)
+
+    gather_node = helper.make_node(
+        "Gather", inputs=["data", "indices"], outputs=["output"], axis=axis
+    )
+
+    # Create the graph
+    graph = helper.make_graph(
+        nodes=[gather_node],
+        name="GatherGraph",
+        inputs=[data],
+        outputs=[output],
+        initializer=[
+            indices,
+        ],
+    )
+
+    # Create the QONNX model
+    model = qonnx_make_model(graph, producer_name="gather-model")
+    model = ModelWrapper(model, fix_missing_initializer_valueinfo=True)
+
+    return model
+
+
+@pytest.mark.parametrize("simd", [1, 2, 32])
+@pytest.mark.parametrize("indices", [[0], [1], [4, 5, 6], [14], [15]])
+@pytest.mark.parametrize("ishape", [[1, 16, 48]])
+@pytest.mark.parametrize("idt", [DataType["INT8"], DataType["FLOAT32"]])
+def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, axis=1):
+    indices = np.array(indices)
+    model = make_gather_model(indices, ishape, axis=axis)
+
+    # reference calculation
+    input = gen_finn_dt_tensor(idt, ishape)
+    input_t = {model.graph.input[0].name: input}
+
+    y_ref = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
+    print(y_ref)
