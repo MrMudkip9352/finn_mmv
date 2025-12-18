@@ -32,8 +32,8 @@ class Crop_hls(Crop, HLSBackend):
         self.code_gen_dict["$DEFINES$"] = [
             f"""
             constexpr unsigned  H      = {self.get_nodeattr("height")};
-            constexpr unsigned  W      = {self.get_nodeattr("width")};
-            constexpr unsigned  CF     = {self.get_nodeattr("width")/simd};
+            constexpr unsigned  W      = {self.get_nodeattr("width")//simd};
+            constexpr unsigned  CF     = 1;
             constexpr unsigned  CROP_N = {self.get_nodeattr("crop_north")};
             constexpr unsigned  CROP_E = {self.get_nodeattr("crop_east")};
             constexpr unsigned  CROP_S = {self.get_nodeattr("crop_south")};

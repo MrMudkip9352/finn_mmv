@@ -10,6 +10,7 @@
 #
 ###################################################################################
 
+import numpy as np
 import warnings
 from qonnx.core.datatype import DataType
 
@@ -109,3 +110,11 @@ class Crop(HWCustomOp):
         fold = int(normal_ishape[-1] / simd)
         folded_ishape = normal_ishape[:-1] + [fold, simd]
         return tuple(folded_ishape)
+
+    def get_exp_cycles(self):
+        simd = self.get_nodeattr("simd")
+        num_vec = self.get_nodeattr("numInputVectors")
+        width = self.get_nodeattr("width")
+        height = self.get_nodeattr("height")
+
+        return np.prod(num_vec) * height * (width // simd)

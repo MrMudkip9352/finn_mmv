@@ -2140,9 +2140,6 @@ class InferCrop(Transformation):
 
                 # assume that the indices input is an int64 scalar or array
                 indices = model.get_initializer(n.input[1])
-                # for now we will restrict to indices = [0] only
-                if (indices != [0]).all():
-                    continue
                 assert indices.dtype == np.int64, "Indices must be int64"
                 # Handle both scalar (0-d) and array cases
                 if indices.ndim == 0:

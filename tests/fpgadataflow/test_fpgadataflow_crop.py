@@ -18,17 +18,23 @@ import numpy as np
 from onnx import TensorProto, helper
 from qonnx.core.datatype import DataType
 from qonnx.core.modelwrapper import ModelWrapper
+from qonnx.custom_op.registry import getCustomOp
 from qonnx.transformation.general import GiveUniqueNodeNames
 from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 import finn.core.onnx_exec as oxe
 import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
+from finn.analysis.fpgadataflow.exp_cycles_per_layer import exp_cycles_per_layer
 from finn.transformation.fpgadataflow.compile_cppsim import CompileCppSim
+from finn.transformation.fpgadataflow.hlssynth_ip import HLSSynthIP
 from finn.transformation.fpgadataflow.prepare_cppsim import PrepareCppSim
+from finn.transformation.fpgadataflow.prepare_ip import PrepareIP
+from finn.transformation.fpgadataflow.prepare_rtlsim import PrepareRTLSim
 from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
 from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
 
 test_fpga_part: str = "xczu7ev-ffvc1156-2-e"
+target_clk_ns = 5
 
 
 def make_gather_model(indices, ishape, axis):
@@ -66,20 +72,14 @@ def make_gather_model(indices, ishape, axis):
     return model
 
 
-@pytest.mark.parametrize("simd", [1, 2, 32])
-@pytest.mark.parametrize(
-    "indices",
-    [
-        [0],
-        pytest.param([1], marks=pytest.mark.xfail(reason="not supported")),
-        pytest.param([4, 5, 6], marks=pytest.mark.xfail(reason="not supported")),
-        pytest.param([14], marks=pytest.mark.xfail(reason="not supported")),
-        pytest.param([15], marks=pytest.mark.xfail(reason="not supported")),
-    ],
-)
+@pytest.mark.fpgadataflow
+@pytest.mark.slow
+@pytest.mark.vivado
+@pytest.mark.parametrize("simd", [1, 16, 48])
+@pytest.mark.parametrize("indices", [[0], [1], [4, 5, 6], [14], [15]])
 @pytest.mark.parametrize("ishape", [[1, 16, 48]])
 @pytest.mark.parametrize("idt", [DataType["INT8"], DataType["FLOAT32"]])
-@pytest.mark.parametrize("exec_mode", ["cppsim"])
+@pytest.mark.parametrize("exec_mode", ["cppsim", "rtlsim"])
 def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, exec_mode, axis=1):
     indices = np.array(indices)
     model = make_gather_model(indices, ishape, axis=axis)
@@ -106,9 +106,20 @@ def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, exec_mode, axis=1)
     if exec_mode == "cppsim":
         model = model.transform(PrepareCppSim())
         model = model.transform(CompileCppSim())
+    elif exec_mode == "rtlsim":
+        model = model.transform(PrepareIP(test_fpga_part, target_clk_ns))
+        model = model.transform(HLSSynthIP())
+        model = model.transform(PrepareRTLSim())
 
     input_t = {model.graph.input[0].name: input}
 
     y_sim = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
 
     assert (y_ref == y_sim).all()
+
+    if exec_mode == "rtlsim":
+        cycles_rtlsim = getCustomOp(model.graph.node[0]).get_nodeattr("cycles_rtlsim")
+        exp_cycles_dict = model.analysis(exp_cycles_per_layer)
+        exp_cycles = exp_cycles_dict[model.graph.node[0].name]
+        assert np.isclose(exp_cycles, cycles_rtlsim, atol=10)
+        assert exp_cycles != 0
