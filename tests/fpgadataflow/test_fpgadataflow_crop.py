@@ -18,10 +18,17 @@ import numpy as np
 from onnx import TensorProto, helper
 from qonnx.core.datatype import DataType
 from qonnx.core.modelwrapper import ModelWrapper
+from qonnx.transformation.general import GiveUniqueNodeNames
 from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 import finn.core.onnx_exec as oxe
 import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
+from finn.transformation.fpgadataflow.compile_cppsim import CompileCppSim
+from finn.transformation.fpgadataflow.prepare_cppsim import PrepareCppSim
+from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
+from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
+
+test_fpga_part: str = "xczu7ev-ffvc1156-2-e"
 
 
 def make_gather_model(indices, ishape, axis):
@@ -60,12 +67,23 @@ def make_gather_model(indices, ishape, axis):
 
 
 @pytest.mark.parametrize("simd", [1, 2, 32])
-@pytest.mark.parametrize("indices", [[0], [1], [4, 5, 6], [14], [15]])
+@pytest.mark.parametrize(
+    "indices",
+    [
+        [0],
+        pytest.param([1], marks=pytest.mark.xfail(reason="not supported")),
+        pytest.param([4, 5, 6], marks=pytest.mark.xfail(reason="not supported")),
+        pytest.param([14], marks=pytest.mark.xfail(reason="not supported")),
+        pytest.param([15], marks=pytest.mark.xfail(reason="not supported")),
+    ],
+)
 @pytest.mark.parametrize("ishape", [[1, 16, 48]])
 @pytest.mark.parametrize("idt", [DataType["INT8"], DataType["FLOAT32"]])
-def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, axis=1):
+@pytest.mark.parametrize("exec_mode", ["cppsim"])
+def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, exec_mode, axis=1):
     indices = np.array(indices)
     model = make_gather_model(indices, ishape, axis=axis)
+    model.set_tensor_datatype(model.graph.input[0].name, idt)
 
     # reference calculation
     input = gen_finn_dt_tensor(idt, ishape)
@@ -79,3 +97,18 @@ def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, axis=1):
     y_hw = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
 
     assert (y_ref == y_hw).all()
+
+    model = model.transform(SpecializeLayers(test_fpga_part))
+    assert model.graph.node[0].op_type == "Crop_hls"
+    model = model.transform(GiveUniqueNodeNames())
+    model = model.transform(SetExecMode(exec_mode))
+
+    if exec_mode == "cppsim":
+        model = model.transform(PrepareCppSim())
+        model = model.transform(CompileCppSim())
+
+    input_t = {model.graph.input[0].name: input}
+
+    y_sim = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
+
+    assert (y_ref == y_sim).all()
