@@ -2097,3 +2097,87 @@ class InferLayerNorm(Transformation):
             model = model.transform(InferShapes())
             model = model.transform(InferDataTypes())
         return (model, graph_modified)
+
+
+def elements_are_consecutive(indices):
+    if indices.size == 1:
+        return True
+    else:
+        indices.sort()
+        return np.all(np.diff(indices) == 1)
+
+
+class InferCrop(Transformation):
+    """
+    Find gather layers that can be converted into a Crop layer
+    and replace them with a Crop layer
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def apply(self, model):
+        graph = model.graph
+        node_ind = 0
+        graph_modified = False
+        for n in graph.node:
+            node_ind += 1
+            if n.op_type == "Gather":
+                # ensure that the indices input is an initializer
+                if model.get_initializer(n.input[1]) is None:
+                    continue
+
+                # ensure that the axis is among the two innermost dimensions
+                input_shape = model.get_tensor_shape(n.input[0])
+                max_index = len(input_shape) - 1
+                axis = get_by_name(n.attribute, "axis").i
+                assert axis in [
+                    max_index,
+                    max_index - 1,
+                ], "Crop Operates on two innermost dimensions"
+                is_vertical = axis == max_index  # otherwise horizontal
+                assert is_vertical is False, "This operator does not current support vertical crops"
+
+                # assume that the indices input is an int64 scalar or array
+                indices = model.get_initializer(n.input[1])
+                assert indices.dtype == np.int64, "Indices must be int64"
+                # Handle both scalar (0-d) and array cases
+                if indices.ndim == 0:
+                    # Single scalar index - always consecutive
+                    indices_to_check = np.array([indices.item()])
+                else:
+                    indices_to_check = indices
+                assert elements_are_consecutive(indices_to_check), "Indices must be consecutive"
+
+                # set the number of pixels to crop off each edge
+                crop_north = int(np.min(indices_to_check))
+                crop_south = input_shape[axis] - int(np.max(indices_to_check)) - 1
+
+                idt0 = model.get_tensor_datatype(n.input[0])
+
+                # create and insert new node
+                new_node = helper.make_node(
+                    "Crop",
+                    [n.input[0]],  # input tensor(s)
+                    [n.output[0]],  # output tensor(s)
+                    domain="finn.custom_op.fpgadataflow",
+                    backend="fpgadataflow",
+                    data_type=idt0.name,
+                    name="Crop" + n.name,
+                    SIMD=1,
+                    height=input_shape[-2],
+                    width=input_shape[-1],
+                    crop_north=crop_north,
+                    crop_east=0,
+                    crop_west=0,
+                    crop_south=crop_south,
+                    numInputVectors=list(input_shape[:-2]),
+                )
+                graph.node.insert(node_ind, new_node)
+                graph.node.remove(n)
+                graph_modified = True
+
+        if graph_modified:
+            model = model.transform(InferShapes())
+            model = model.transform(InferDataTypes())
+        return (model, graph_modified)

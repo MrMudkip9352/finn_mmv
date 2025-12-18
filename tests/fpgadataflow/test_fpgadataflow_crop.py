@@ -21,6 +21,7 @@ from qonnx.core.modelwrapper import ModelWrapper
 from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 import finn.core.onnx_exec as oxe
+import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
 
 
 def make_gather_model(indices, ishape, axis):
@@ -71,4 +72,10 @@ def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, axis=1):
     input_t = {model.graph.input[0].name: input}
 
     y_ref = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
-    print(y_ref)
+
+    model = model.transform(to_hw.InferCrop())
+
+    input_t = {model.graph.input[0].name: input}
+    y_hw = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
+
+    assert (y_ref == y_hw).all()
