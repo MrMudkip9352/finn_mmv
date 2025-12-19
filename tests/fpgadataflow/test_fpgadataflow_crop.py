@@ -20,6 +20,7 @@ from qonnx.core.datatype import DataType
 from qonnx.core.modelwrapper import ModelWrapper
 from qonnx.custom_op.registry import getCustomOp
 from qonnx.transformation.general import GiveUniqueNodeNames
+from qonnx.transformation.infer_shapes import InferShapes
 from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 import finn.core.onnx_exec as oxe
@@ -38,15 +39,11 @@ target_clk_ns = 5
 
 
 def make_gather_model(indices, ishape, axis):
-    size = indices.shape[0]
-
-    oshape = [ishape[0], size, ishape[2]]
-
     # Define the input tensor
     data = helper.make_tensor_value_info("data", TensorProto.FLOAT, ishape)
 
-    # Define the output tensor
-    output = helper.make_tensor_value_info("output", TensorProto.FLOAT, oshape)
+    # Define the output tensor and leave shape undefined to be inferred later
+    output = helper.make_tensor_value_info("output", TensorProto.FLOAT, None)
 
     indices = helper.make_tensor("indices", TensorProto.INT64, [len(indices)], indices)
 
@@ -68,6 +65,7 @@ def make_gather_model(indices, ishape, axis):
     # Create the QONNX model
     model = qonnx_make_model(graph, producer_name="gather-model")
     model = ModelWrapper(model, fix_missing_initializer_valueinfo=True)
+    model = model.transform(InferShapes())
 
     return model
 
@@ -75,12 +73,20 @@ def make_gather_model(indices, ishape, axis):
 @pytest.mark.fpgadataflow
 @pytest.mark.slow
 @pytest.mark.vivado
-@pytest.mark.parametrize("simd", [1, 16, 48])
-@pytest.mark.parametrize("indices", [[0], [1], [4, 5, 6], [14], [15]])
-@pytest.mark.parametrize("ishape", [[1, 16, 48]])
+@pytest.mark.parametrize(
+    "ishape_axis_indices",
+    [
+        ([1, 16, 48], 1, [0]),
+        ([1, 16, 48], 1, [4, 5, 6]),
+        ([32, 48], 0, [15]),
+        ([1, 16, 48, 16], 2, [1]),
+    ],
+)
+@pytest.mark.parametrize("simd", [1, 8, 16])
 @pytest.mark.parametrize("idt", [DataType["INT8"], DataType["FLOAT32"]])
 @pytest.mark.parametrize("exec_mode", ["cppsim", "rtlsim"])
-def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, exec_mode, axis=1):
+def test_fpgadataflow_gather_crop(ishape_axis_indices, simd, idt, exec_mode):
+    ishape, axis, indices = ishape_axis_indices
     indices = np.array(indices)
     model = make_gather_model(indices, ishape, axis=axis)
     model.set_tensor_datatype(model.graph.input[0].name, idt)
@@ -100,6 +106,7 @@ def test_fpgadataflow_gather_crop(simd, indices, ishape, idt, exec_mode, axis=1)
 
     model = model.transform(SpecializeLayers(test_fpga_part))
     assert model.graph.node[0].op_type == "Crop_hls"
+    getCustomOp(model.graph.node[0]).set_nodeattr("SIMD", simd)
     model = model.transform(GiveUniqueNodeNames())
     model = model.transform(SetExecMode(exec_mode))
 

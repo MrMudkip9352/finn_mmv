@@ -27,18 +27,24 @@ class Crop_hls(Crop, HLSBackend):
         ]
 
     def defines(self, var):
-        simd = self.get_nodeattr("simd")
+        simd = self.get_nodeattr("SIMD")
         dtype = self.get_input_datatype()
+        height, width = self.get_nodeattr("ImgDim")
+        if height == 0:
+            # pretend that height is 1 for code generation
+            height = 1
+        ch = self.get_nodeattr("NumChannels")
         self.code_gen_dict["$DEFINES$"] = [
             f"""
-            constexpr unsigned  H      = {self.get_nodeattr("height")};
-            constexpr unsigned  W      = {self.get_nodeattr("width")//simd};
-            constexpr unsigned  CF     = 1;
-            constexpr unsigned  CROP_N = {self.get_nodeattr("crop_north")};
-            constexpr unsigned  CROP_E = {self.get_nodeattr("crop_east")};
-            constexpr unsigned  CROP_S = {self.get_nodeattr("crop_south")};
-            constexpr unsigned  CROP_W = {self.get_nodeattr("crop_west")};
-            using  TV = hls::vector<{dtype.get_hls_datatype_str()}, {simd}>;
+            constexpr unsigned  SIMD      = {simd};
+            constexpr unsigned  H      = {height};
+            constexpr unsigned  W      = {width};
+            constexpr unsigned  CF     = {ch // simd};
+            constexpr unsigned  CROP_N = {self.get_nodeattr("CropNorth")};
+            constexpr unsigned  CROP_E = {self.get_nodeattr("CropEast")};
+            constexpr unsigned  CROP_S = {self.get_nodeattr("CropSouth")};
+            constexpr unsigned  CROP_W = {self.get_nodeattr("CropWest")};
+            using  TV = hls::vector<{dtype.get_hls_datatype_str()}, SIMD>;
             """
         ]
 

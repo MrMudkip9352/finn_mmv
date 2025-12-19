@@ -2129,12 +2129,21 @@ class InferCrop(Transformation):
 
                 # ensure that the axis is among the two innermost dimensions
                 input_shape = model.get_tensor_shape(n.input[0])
+                assert (
+                    len(input_shape) > 1
+                ), "Input shape needs to be at least 2D to be converted to Crop."
+
                 max_index = len(input_shape) - 1
                 axis = get_by_name(n.attribute, "axis").i
-                assert axis in [
-                    max_index,
-                    max_index - 1,
-                ], "Crop Operates on two innermost dimensions"
+                if len(input_shape) >= 3:
+                    assert axis in [
+                        max_index - 1,
+                        max_index - 2,
+                    ], "Crop Operates on height and width of the input, assuming (N)HWC layout."
+                else:
+                    assert (
+                        axis == max_index - 1
+                    ), "Crop Operates on width of the input, for 2D input assuming WC layout."
                 is_vertical = axis == max_index  # otherwise horizontal
                 assert is_vertical is False, "This operator does not current support vertical crops"
 
@@ -2149,11 +2158,47 @@ class InferCrop(Transformation):
                     indices_to_check = indices
                 assert elements_are_consecutive(indices_to_check), "Indices must be consecutive"
 
-                # set the number of pixels to crop off each edge
-                crop_north = int(np.min(indices_to_check))
-                crop_south = input_shape[axis] - int(np.max(indices_to_check)) - 1
-
                 idt0 = model.get_tensor_datatype(n.input[0])
+
+                crop_north = 0
+                crop_east = 0
+                crop_west = 0
+                crop_south = 0
+                num_inp_vec = [0]
+
+                if len(input_shape) >= 3:
+                    height_ind = len(input_shape) - 3
+                    width_ind = len(input_shape) - 2
+                    channels_ind = len(input_shape) - 1
+
+                    height = input_shape[height_ind]
+                    width = input_shape[width_ind]
+                    channels = input_shape[channels_ind]
+                    # save other dimensions in numInpVectors
+                    if len(input_shape) > 3:
+                        num_inp_vec = list(input_shape[:height_ind])
+
+                    crop_min = int(np.min(indices_to_check))
+                    crop_max = input_shape[axis] - int(np.max(indices_to_check)) - 1
+
+                    if axis == height_ind:
+                        crop_north = crop_min
+                        crop_south = crop_max
+                    elif axis == width_ind:
+                        crop_west = crop_min
+                        crop_east = crop_max
+
+                elif len(input_shape) == 2:
+                    # if there are only two dimensions, assume
+                    height = 0
+                    width_ind = len(input_shape) - 2
+                    channels_ind = len(input_shape) - 1
+                    width = input_shape[width_ind]
+                    channels = input_shape[channels_ind]
+
+                    # axis is on width dimension
+                    crop_west = int(np.min(indices_to_check))
+                    crop_east = input_shape[axis] - int(np.max(indices_to_check)) - 1
 
                 # create and insert new node
                 new_node = helper.make_node(
@@ -2162,16 +2207,16 @@ class InferCrop(Transformation):
                     [n.output[0]],  # output tensor(s)
                     domain="finn.custom_op.fpgadataflow",
                     backend="fpgadataflow",
-                    data_type=idt0.name,
+                    DataType=idt0.name,
                     name="Crop" + n.name,
                     SIMD=1,
-                    height=input_shape[-2],
-                    width=input_shape[-1],
-                    crop_north=crop_north,
-                    crop_east=0,
-                    crop_west=0,
-                    crop_south=crop_south,
-                    numInputVectors=list(input_shape[:-2]),
+                    ImgDim=[height, width],
+                    NumChannels=channels,
+                    CropNorth=crop_north,
+                    CropEast=crop_east,
+                    CropWest=crop_west,
+                    CropSouth=crop_south,
+                    numInputVectors=num_inp_vec,
                     cpp_interface="hls_vector",
                     hls_style="freerunning",
                 )
