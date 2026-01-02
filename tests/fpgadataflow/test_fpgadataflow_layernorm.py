@@ -154,9 +154,10 @@ def test_fpgadataflow_layernorm(idt, ishape, simd, has_scale, has_bias, sim_styl
 @pytest.mark.parametrize("has_scale", [True, False])
 @pytest.mark.parametrize("has_bias", [True, False])
 def test_extract_norm_scale_bias(idt, ishape, has_scale, has_bias):
-    model1 = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon=9.999999960041972e-13)
-    model2 = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon=9.999999960041972e-13)
-    model3 = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon=9.999999960041972e-13)
+    epsilon = 9.999999960041972e-13
+    model1 = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon)
+    model2 = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon)
+    model3 = create_layernorm_model(idt, ishape, has_scale, has_bias, epsilon)
 
     model = model1.transform(MergeONNXModels(model2))
     model = model.transform(MergeONNXModels(model3))
@@ -183,4 +184,4 @@ def test_extract_norm_scale_bias(idt, ishape, has_scale, has_bias):
     input_t = {model.graph.input[0].name: input}
 
     y_out = oxe.execute_onnx(model, input_t)[model.graph.output[0].name]
-    assert np.allclose(y_ref, y_out, rtol=1e-3, atol=2**-4)
+    assert (y_ref == y_out).all()
