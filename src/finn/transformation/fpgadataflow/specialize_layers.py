@@ -72,6 +72,12 @@ def _determine_impl_style(node, fpgapart, model):
                     return "rtl"
                 else:
                     return "hls"
+            elif optype == "LayerNorm":
+                idt = node_inst.get_input_datatype(0)
+                if idt == "FLOAT32":
+                    return "rtl"
+                else:
+                    return "hls"
             return "rtl"
         # but if no rtl variant, set impl_style to hls
         elif hls_variant:
@@ -138,6 +144,19 @@ def _determine_impl_style(node, fpgapart, model):
                         set to HLS variant. Please check the bit-widths to be <= 8 and ensure the
                         thresholds are implemented as standalone layer. Note that the RTL-variant
                         of this layer is only supported on Versal boards""" % (
+                    node.name,
+                )
+                warnings.warn(warn_str)
+                return "hls"
+
+        elif optype == "LayerNorm":
+            idt = node_inst.get_input_datatype(0)
+            if idt == "FLOAT32":
+                return "rtl"
+            else:
+                warn_str = """There is no RTL variant for %s. The node will automatically be
+                        set to HLS variant.
+                        The RTL Layernorm layer currently only supports float32 inputs,""" % (
                     node.name,
                 )
                 warnings.warn(warn_str)
