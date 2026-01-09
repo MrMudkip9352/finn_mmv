@@ -73,8 +73,7 @@ def _determine_impl_style(node, fpgapart, model):
                 else:
                     return "hls"
             elif optype == "LayerNorm":
-                idt = node_inst.get_input_datatype(0)
-                if idt == "FLOAT32":
+                if _layernorm_rtl_possible(node, fpgapart):
                     return "rtl"
                 else:
                     return "hls"
@@ -150,8 +149,7 @@ def _determine_impl_style(node, fpgapart, model):
                 return "hls"
 
         elif optype == "LayerNorm":
-            idt = node_inst.get_input_datatype(0)
-            if idt == "FLOAT32":
+            if _layernorm_rtl_possible(node, fpgapart):
                 return "rtl"
             else:
                 warn_str = """There is no RTL variant for %s. The node will automatically be
@@ -265,6 +263,19 @@ def _vvu_rtl_possible(n, fpgapart):
     signed_weights = wdt.min() < 0
 
     return in_width_in_range and weight_width_in_range and signed_weights
+
+
+def _layernorm_rtl_possible(n, fpgapart):
+    # Checks whether RTL-based Layernorm is supported
+    # Currently, we only support float32 inputs and versal fabric
+    if not is_versal(fpgapart):
+        return False
+    node_inst = getCustomOp(n)
+    idt = node_inst.get_input_datatype(0)
+    if idt != "FLOAT32":
+        return False
+    else:
+        return True
 
 
 class SpecializeLayers(Transformation):
