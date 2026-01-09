@@ -17,7 +17,6 @@ class LayerNorm_hls(LayerNorm, HLSBackend):
         super().__init__(onnx_node, **kwargs)
 
     def get_nodeattr_types(self):
-        # maybe should be set in specialize layers
         my_attrs = {}
         my_attrs.update(LayerNorm.get_nodeattr_types(self))
         my_attrs.update(HLSBackend.get_nodeattr_types(self))

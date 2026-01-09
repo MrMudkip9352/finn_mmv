@@ -122,7 +122,7 @@ def test_fpgadataflow_rtl_layernorm(idt, ishape, simd, sim_style):
     model = model.transform(SpecializeLayers(test_fpga_part))
     model = model.transform(GiveUniqueNodeNames())
 
-    assert model.graph.node[0].op_type == "LayerNorm_rtl", "LayerNorm wasn't convert to RTL Layer"
+    assert model.graph.node[0].op_type == "LayerNorm_rtl", "LayerNorm wasn't converted to RTL Layer"
 
     getCustomOp(model.graph.node[0]).set_nodeattr("SIMD", simd)
 
@@ -190,7 +190,7 @@ def test_fpgadataflow_hls_layernorm(idt, ishape, simd, sim_style):
     model = model.transform(SpecializeLayers(test_fpga_part))
     model = model.transform(GiveUniqueNodeNames())
 
-    assert model.graph.node[0].op_type == "LayerNorm_hls", "LayerNorm wasn't convert to HLS Layer"
+    assert model.graph.node[0].op_type == "LayerNorm_hls", "LayerNorm wasn't converted to HLS Layer"
 
     getCustomOp(model.graph.node[0]).set_nodeattr("SIMD", simd)
 

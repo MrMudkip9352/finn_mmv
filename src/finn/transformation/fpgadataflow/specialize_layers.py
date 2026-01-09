@@ -153,8 +153,8 @@ def _determine_impl_style(node, fpgapart, model):
                 return "rtl"
             else:
                 warn_str = """There is no RTL variant for %s. The node will automatically be
-                        set to HLS variant.
-                        The RTL Layernorm layer currently only supports float32 inputs,""" % (
+                        set to HLS variant. The RTL Layernorm layer currently only supports
+                        float32 inputs and uses DSP58, so only versal devices supported.""" % (
                     node.name,
                 )
                 warnings.warn(warn_str)
