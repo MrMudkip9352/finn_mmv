@@ -41,8 +41,9 @@ from qonnx.util.basic import gen_finn_dt_tensor, qonnx_make_model
 
 from finn.core.onnx_exec import execute_onnx
 from finn.transformation.fpgadataflow.compile_cppsim import CompileCppSim
-from finn.transformation.fpgadataflow.convert_to_hw_layers import InferReLUAsElementwiseMax
-from finn.transformation.fpgadataflow.create_stitched_ip import CreateStitchedIP
+from finn.transformation.fpgadataflow.convert_to_hw_layers import (
+    InferReLUAsElementwiseMax,
+)
 from finn.transformation.fpgadataflow.hlssynth_ip import HLSSynthIP
 from finn.transformation.fpgadataflow.minimize_accumulator_width import (
     MinimizeAccumulatorWidth,
@@ -54,7 +55,6 @@ from finn.transformation.fpgadataflow.prepare_cppsim import PrepareCppSim
 from finn.transformation.fpgadataflow.prepare_ip import PrepareIP
 from finn.transformation.fpgadataflow.prepare_rtlsim import PrepareRTLSim
 from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
-from finn.transformation.fpgadataflow.set_fifo_depths import InsertAndSetFIFODepths
 from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
 
 
@@ -94,9 +94,7 @@ def create_relu_model_onnx(inp_dtype, inp_shape):
 @pytest.mark.fpgadataflow
 @pytest.mark.slow
 @pytest.mark.vivado
-def test_relu_elementwisemax(
-    inp_dtype, inp_shape, pe, exec_mode
-):
+def test_relu_elementwisemax(inp_dtype, inp_shape, pe, exec_mode):
     # Make dummy model for testing
     model = create_relu_model_onnx(inp_dtype, inp_shape)
     # Prepare the execution context
