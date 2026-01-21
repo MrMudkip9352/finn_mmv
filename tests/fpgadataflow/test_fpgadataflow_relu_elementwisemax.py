@@ -99,6 +99,8 @@ def test_relu_elementwisemax(inp_dtype, inp_shape, pe, exec_mode):
     model = create_relu_model_onnx(inp_dtype, inp_shape)
     # Prepare the execution context
     context = {"inp": gen_finn_dt_tensor(DataType[inp_dtype], inp_shape)}
+    # Compute ground-truth output in software
+    o_ref = np.maximum(context["inp"], 0)
 
     # Test running shape and data type inference on the model graph
     model = model.transform(InferDataTypes())
@@ -109,6 +111,11 @@ def test_relu_elementwisemax(inp_dtype, inp_shape, pe, exec_mode):
 
     assert len(model.graph.node) == 1
     assert model.graph.node[0].op_type == "ElementwiseMax"
+    # Execute the onnx model to collect the result
+    o_hw = execute_onnx(model, context)["out"]
+
+    # Compare the expected to the produced for exact equality
+    assert np.all(o_hw == o_ref)
 
     # Test running shape and data type inference on the model graph
     model = model.transform(InferDataTypes())
@@ -136,11 +143,8 @@ def test_relu_elementwisemax(inp_dtype, inp_shape, pe, exec_mode):
         model = model.transform(HLSSynthIP())
         model = model.transform(PrepareRTLSim())
 
-    # Compute ground-truth output in software
-    o_expected = np.maximum(context["inp"], 0)
-
     # Execute the onnx model to collect the result
-    o_produced = execute_onnx(model, context)["out"]
+    o_sim = execute_onnx(model, context)["out"]
 
     # Compare the expected to the produced for exact equality
-    assert np.all(o_produced == o_expected)
+    assert np.all(o_sim == o_ref)
