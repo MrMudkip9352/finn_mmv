@@ -26,15 +26,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-try:
-    import finn_xsi.adapter as finnxsi
-except ModuleNotFoundError:
-    finnxsi = None
-
 import numpy as np
 import os
 from qonnx.custom_op.registry import getCustomOp
 
+from finn import xsi
 from finn.util.basic import (
     get_finn_root,
     get_liveness_threshold_cycles,
@@ -43,6 +39,8 @@ from finn.util.basic import (
     make_build_dir,
 )
 from finn.util.data_packing import npy_to_rtlsim_input, rtlsim_output_to_npy
+
+finnxsi = xsi if xsi.is_available() else None
 
 
 def prep_rtlsim_io_dict(model, execution_context):
@@ -66,11 +64,16 @@ def prep_rtlsim_io_dict(model, execution_context):
             # for these functions
             i_stream_w = first_node.get_instream_width(node_inp_ind)
             i_folded_shape = first_node.get_folded_input_shape(node_inp_ind)
-        batchsize = i_tensor.shape[0]
-        # override batch size for input
-        i_folded_shape = list(i_folded_shape)
-        i_folded_shape[0] = batchsize
+
+        if first_node.onnx_node.op_type == "InnerShuffle_rtl":
+            batchsize = 1
+        else:
+            batchsize = i_tensor.shape[0]
+            i_folded_shape = list(i_folded_shape)
+            i_folded_shape[0] = batchsize
+            # override batch size for input
         i_folded_shape = tuple(i_folded_shape)
+
         # TODO any other layout transformations need to happen here!
         i_tensor = i_tensor.reshape(i_folded_shape)
         # pack input for rtlsim
@@ -93,14 +96,14 @@ def prep_rtlsim_io_dict(model, execution_context):
         o_folded_shape = last_node.get_folded_output_shape()
         # override batch size from actual input
         o_shape = list(o_shape)
-        if o_shape[0] != batchsize:
+        if o_shape[0] != batchsize and (first_node.onnx_node.op_type != "InnerShuffle_rtl"):
             o_shape[0] = batchsize
             num_out_values[if_name] = batchsize * last_node.get_number_output_values()
         else:
             num_out_values[if_name] = last_node.get_number_output_values()
         o_shape = tuple(o_shape)
         o_folded_shape = list(o_folded_shape)
-        if o_folded_shape[0] != batchsize:
+        if o_folded_shape[0] != batchsize and (first_node.onnx_node.op_type != "InnerShuffle_rtl"):
             o_folded_shape[0] = batchsize
         o_folded_shape = tuple(o_folded_shape)
         o_stream_w = last_node.get_outstream_width()
@@ -173,7 +176,7 @@ def rtlsim_exec_cppxsi(
         single_src_dir = make_build_dir("rtlsim_" + top_module_name + "_")
         debug = not (trace_file is None or trace_file == "")
         rtlsim_so = finnxsi.compile_sim_obj(
-            top_module_name, all_verilog_srcs, single_src_dir, debug=debug
+            top_module_name, all_verilog_srcs, single_src_dir, debug=debug, behav=True
         )
         # save generated lib filename in attribute
         model.set_metadata_prop("rtlsim_so", rtlsim_so[0] + "/" + rtlsim_so[1])
@@ -357,6 +360,7 @@ def rtlsim_exec_finnxsi(model, execution_context, pre_hook=None, post_hook=None)
     finnxsi.reset_rtlsim(sim)
     if pre_hook is not None:
         pre_hook(sim)
+        finnxsi.reset_rtlsim(sim)
     n_cycles = finnxsi.rtlsim_multi_io(
         sim,
         io_dict,
