@@ -26,6 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import numpy as np
 from onnx import helper as oh
 from qonnx.custom_op.registry import getCustomOp
 from qonnx.transformation.base import Transformation
@@ -79,15 +80,32 @@ class InsertDWC(Transformation):
                         n0 = getCustomOp(n)
                         n1 = getCustomOp(consumer)
                         n0_out_shape = n0.get_folded_output_shape(out_idx)
-                        # get input idx
-                        in_idx = None
-                        for idx, n_input in enumerate(consumer.input):
-                            if output_name == n_input:
-                                in_idx = idx
-                        assert in_idx is not None, "Malformed model"
-                        n1_in_shape = n1.get_folded_input_shape(in_idx)
+                        # TODO: Ask Lukas if checks make sense in current FINN, shouldn't we always just look at index?
+                        # in some special cases, we need to get folded shapes of
+                        # non-default inputs for the consumer
+                        # - if FC and external mem, it could be connected to input 1
+                        # - if concat, could be connected to any input
+                        if (
+                            consumer.op_type.startswith("MVAU")
+                            and n1.get_nodeattr("mem_mode") == "external"
+                        ) or (consumer.op_type.startswith("StreamingConcat")):
+                            # get input idx
+                            in_idx = None
+                            for idx, n_input in enumerate(consumer.input):
+                                if output_name == n_input:
+                                    in_idx = idx
+                            assert in_idx is not None, "Malformed model"
+                            n1_in_shape = n1.get_folded_input_shape(in_idx)
+                        else:
+                            # use default folded input shape
+                            n1_in_shape = n1.get_folded_input_shape()
 
-                        if n0_out_shape[-1] != n1_in_shape[-1]:
+                        # insert the DWC if either the widths missmatch
+                        # (use DWC for folding conversion)
+                        # or if the total element counts differ (use DWC for padding & cropping)
+                        if n0_out_shape[-1] != n1_in_shape[-1] or np.prod(n0_out_shape) != np.prod(
+                            n1_in_shape
+                        ):
                             graph_modified = True
                             # determine dwc inwidth
                             dwc_in_width = n0.get_outstream_width(out_idx)
@@ -95,19 +113,41 @@ class InsertDWC(Transformation):
                             dwc_out_width = n1.get_instream_width(in_idx)
                             node_optype = "StreamingDataWidthConverter"
 
-                            # determine shape for dwc
-                            dwc_shape = n0.get_normal_output_shape(out_idx)
-
+                            if max(dwc_in_width, dwc_out_width) % min(
+                                dwc_in_width, dwc_out_width
+                            ) == 0 and np.prod(n0_out_shape) == np.prod(n1_in_shape):
+                                # the DWC does not need to perform conversions between
+                                # widths which can be divided by one another,
+                                # nor is padding or cropping happening
+                                # thus we can use the optimal RTL variant
+                                style = "rtl"
+                            else:
+                                # either complex width conversion or padding/cropping
+                                # are involved, so we use the generalized HLS variant
+                                style = "hls"
                             # determine FINN dtype for dwc
                             dtype = n0.get_output_datatype(out_idx)
                             # determine onnx tensor dtype for dwc
                             n0_otensor = model.get_tensor_valueinfo(output_name)
                             n0_tensor_dtype = n0_otensor.type.tensor_type.elem_type
+                            n1_dtype = n1.get_input_datatype()
+                            assert dtype == n1_dtype, (
+                                "Neighboring node datatypes are Incompatible"
+                                + f" ({dtype}) != ({n1_dtype})"
+                            )
+
+                            # determine shapes for dwc
+                            # generalized version allows them to differ
+                            # and will either pad or crop depending
+                            # on the difference in elements sent
+                            # and requested
+                            in_shape = n0.get_normal_output_shape()
+                            out_shape = n1.get_normal_input_shape()
 
                             dwc_output_tensor = oh.make_tensor_value_info(
                                 model.make_new_valueinfo_name(),
                                 n0_tensor_dtype,
-                                dwc_shape,
+                                out_shape,
                             )
                             graph.value_info.append(dwc_output_tensor)
 
@@ -117,9 +157,11 @@ class InsertDWC(Transformation):
                                 [dwc_output_tensor.name],
                                 domain="finn.custom_op.fpgadataflow",
                                 backend="fpgadataflow",
-                                shape=dwc_shape,
+                                in_shape=in_shape,
+                                out_shape=out_shape,
                                 inWidth=dwc_in_width,
                                 outWidth=dwc_out_width,
+                                preferred_impl_style=style,
                                 dataType=str(dtype.name),
                             )
                             # insert dwc
