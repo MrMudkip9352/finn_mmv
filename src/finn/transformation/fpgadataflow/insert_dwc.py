@@ -80,25 +80,34 @@ class InsertDWC(Transformation):
                         n0 = getCustomOp(n)
                         n1 = getCustomOp(consumer)
                         n0_out_shape = n0.get_folded_output_shape(out_idx)
+                        
                         # TODO: Ask Lukas if checks make sense in current FINN, shouldn't we always just look at index?
                         # in some special cases, we need to get folded shapes of
                         # non-default inputs for the consumer
                         # - if FC and external mem, it could be connected to input 1
                         # - if concat, could be connected to any input
-                        if (
-                            consumer.op_type.startswith("MVAU")
-                            and n1.get_nodeattr("mem_mode") == "external"
-                        ) or (consumer.op_type.startswith("StreamingConcat")):
-                            # get input idx
-                            in_idx = None
-                            for idx, n_input in enumerate(consumer.input):
-                                if output_name == n_input:
-                                    in_idx = idx
-                            assert in_idx is not None, "Malformed model"
-                            n1_in_shape = n1.get_folded_input_shape(in_idx)
-                        else:
-                            # use default folded input shape
-                            n1_in_shape = n1.get_folded_input_shape()
+                        # if (
+                        #     consumer.op_type.startswith("MVAU")
+                        #     and n1.get_nodeattr("mem_mode") == "external"
+                        # ) or (consumer.op_type.startswith("StreamingConcat")):
+                        #     # get input idx
+                        #     in_idx = None
+                        #     for idx, n_input in enumerate(consumer.input):
+                        #         if output_name == n_input:
+                        #             in_idx = idx
+                        #     assert in_idx is not None, "Malformed model"
+                        #     n1_in_shape = n1.get_folded_input_shape(in_idx)
+                        # else:
+                        #     # use default folded input shape
+                        #     n1_in_shape = n1.get_folded_input_shape()
+                            
+                        # get input idx
+                        in_idx = None
+                        for idx, n_input in enumerate(consumer.input):
+                            if output_name == n_input:
+                                in_idx = idx
+                        assert in_idx is not None, "Malformed model"
+                        n1_in_shape = n1.get_folded_input_shape(in_idx)
 
                         # insert the DWC if either the widths missmatch
                         # (use DWC for folding conversion)
