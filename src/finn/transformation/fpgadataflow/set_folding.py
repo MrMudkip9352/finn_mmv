@@ -1321,6 +1321,7 @@ class Optimizer:
         self.params = pset_obj
 
 
+# Comment out this call because otherwise leading to circular import - TODO: Better solution
 
 # def insert_and_size_fifos(
 #     model_dir, model, board, fpga_part, consider_dwc_costs, auto_fifo_strategy

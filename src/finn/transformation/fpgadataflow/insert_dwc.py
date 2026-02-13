@@ -151,6 +151,9 @@ class InsertDWC(Transformation):
                             )
                             graph.value_info.append(dwc_output_tensor)
 
+                            # Compute new attribute flattenInput - True <=> (out_shape[-1] == 1 || (n1.hasAttribute(M) && n1.M > 1))
+                            dwc_flatten_vectors = (out_shape[-1] == 1) or ("M" in n1.get_nodeattr_types() and n1.get_nodeattr("M") > 1)
+                            
                             dwc_node = oh.make_node(
                                 node_optype,
                                 [output_name],
@@ -163,6 +166,7 @@ class InsertDWC(Transformation):
                                 outWidth=dwc_out_width,
                                 preferred_impl_style=style,
                                 dataType=str(dtype.name),
+                                flattenVectors = dwc_flatten_vectors
                             )
                             # insert dwc
                             graph.node.insert(node_ind + 1, dwc_node)

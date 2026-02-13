@@ -28,6 +28,8 @@
 
 import math
 import numpy as np
+import os
+from qonnx.core.datatype import DataType
 
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 from finn.custom_op.fpgadataflow.streamingdatawidthconverter import (
@@ -113,6 +115,11 @@ class StreamingDataWidthConverter_hls(StreamingDataWidthConverter, HLSBackend):
 
     def execute_node(self, context, graph):
         mode = self.get_nodeattr("exec_mode")
+        node = self.onnx_node
+        exp_shape = self.get_normal_input_shape()
+        folded_ishape = self.get_folded_input_shape()
+        
+        # TODO ensure codegen dir exists
         if mode == "cppsim":
             code_gen_dir = self.get_nodeattr("code_gen_dir_cppsim")
         elif mode == "rtlsim":

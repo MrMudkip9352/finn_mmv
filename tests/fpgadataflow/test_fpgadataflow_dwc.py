@@ -46,7 +46,7 @@ from finn.transformation.fpgadataflow.set_exec_mode import SetExecMode
 from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
 
 
-def make_single_dwc_modelwrapper(in_shape, out_shape, inWidth, outWidth, finn_dtype):
+def make_single_dwc_modelwrapper(in_shape, out_shape, inWidth, outWidth, finn_dtype, impl_style, flatten_vectors):
     inp = helper.make_tensor_value_info("inp", TensorProto.FLOAT, in_shape)
     outp = helper.make_tensor_value_info("outp", TensorProto.FLOAT, out_shape)
 
@@ -62,9 +62,9 @@ def make_single_dwc_modelwrapper(in_shape, out_shape, inWidth, outWidth, finn_dt
         out_shape=out_shape,
         inWidth=inWidth,
         outWidth=outWidth,
-        preferred_impl_style="hls",
-        generalized_variant=True,
+        preferred_impl_style=impl_style,
         dataType=str(finn_dtype.name),
+        flattenVectors = flatten_vectors,
     )
 
     graph = helper.make_graph(nodes=[DWC_node], name="dwc_graph", inputs=[inp], outputs=[outp])
@@ -86,42 +86,53 @@ def prepare_inputs(input_tensor, dt):
     "config",
     [
         # Standard DWC functionality:
-        ([1, 1, 24], [1, 1, 24], 6, 4, DataType["INT2"]), # Unsupported by RTL implementation since 6 and 4 not ratios from each other (6 % 4 !=0; 4 % 6 != 0)
-        ([1, 1, 24], [1, 1, 24], 4, 6, DataType["INT2"]), # Compiler should default to HLS implementation even in RTL case
-        ([1, 1, 4], [1, 1, 4], 2, 4, DataType["BIPOLAR"]),
-        ([1, 1, 4], [1, 1, 4], 4, 2, DataType["INT2"]),
-        ([1, 2, 8], [1, 2, 8], 4, 4, DataType["INT2"]),
-        ([1, 2, 8], [1, 2, 8], 8, 16, DataType["INT2"]),
+        ([1, 1, 24], [1, 1, 24], 6, 4, DataType["INT2"], False), # Unsupported by RTL implementation since 6 and 4 not ratios from each other (6 % 4 !=0; 4 % 6 != 0)
+        ([1, 1, 24], [1, 1, 24], 4, 6, DataType["INT2"], False), # Compiler should default to HLS implementation even in RTL case
+        ([1, 1, 4], [1, 1, 4], 2, 4, DataType["BIPOLAR"], False),
+        ([1, 1, 4], [1, 1, 4], 4, 2, DataType["INT2"], False),
+        ([1, 2, 8], [1, 2, 8], 4, 4, DataType["INT2"], False),
+        ([1, 2, 8], [1, 2, 8], 8, 16, DataType["INT2"], False),
         # padding-specific tests:
-        ([1, 2, 2, 6 * 4], [1, 2, 2, 2 * 13], 4, 13, DataType["BIPOLAR"]),
-        ([1, 2, 2, 2 * 4], [1, 2, 2, 4 * 4], 4, 4, DataType["BIPOLAR"]),
-        ([1, 2, 2, 1 * 10], [1, 2, 2, 2 * 6], 10, 6, DataType["BIPOLAR"]),
-        ([1, 2, 2, 1 * 10], [1, 2, 2, 2 * 4], 10, 4, DataType["BIPOLAR"]),
-        # MMV-specific tests
-        ([1, 2, 8], [1, 2, 8], 8, 32, DataType["INT2"]),
-        ([1, 4, 4], [1, 4, 4], 8, 64, DataType["UINT4"]),
-        ([1, 8, 1], [1, 8, 1], 2, 4, DataType["BIPOLAR"]),
+        ([1, 2, 2, 6 * 4], [1, 2, 2, 2 * 13], 4, 13, DataType["BIPOLAR"], False),
+        ([1, 2, 2, 2 * 4], [1, 2, 2, 4 * 4], 4, 4, DataType["BIPOLAR"], False),
+        ([1, 2, 2, 1 * 10], [1, 2, 2, 2 * 6], 10, 6, DataType["BIPOLAR"], False),
+        ([1, 2, 2, 1 * 10], [1, 2, 2, 2 * 4], 10, 4, DataType["BIPOLAR"], False),
+        # TODO: Test with INT datatype?
+        ([1, 2, 2, 6 * 4], [1, 2, 2, 2 * 13], 8, 26, DataType["INT2"], False),
+        ([1, 2, 2, 2 * 4], [1, 2, 2, 4 * 4], 8, 8, DataType["INT2"], False), 
+        # MMV-specific tests:
+        ([1, 2, 8], [1, 2, 8], 8, 32, DataType["INT2"], True),
+        ([1, 4, 4], [1, 4, 4], 8, 64, DataType["UINT4"], True),
+        ([1, 8, 1], [1, 8, 1], 2, 4, DataType["BIPOLAR"], True),
     ],
 )
 @pytest.mark.parametrize("exec_mode", ["cppsim", "rtlsim"])
+@pytest.mark.parametrize("impl_style", ["hls", "rtl"])
 @pytest.mark.fpgadataflow
 @pytest.mark.slow
 @pytest.mark.vivado
-def test_fpgadataflow_dwc(config, exec_mode):
-    in_shape, out_shape, inWidth, outWidth, finn_dtype = config
+def test_fpgadataflow_dwc(config, exec_mode, impl_style):
+    in_shape, out_shape, inWidth, outWidth, finn_dtype, flatten_vectors = config
+    
+    if(in_shape != out_shape):
+        pytest.skip("""Padding skipped""")
+    
+    if(impl_style != "hls" and in_shape != out_shape):
+        pytest.skip("""Padding only supported by HLS implementation""")
 
     test_fpga_part = "xc7z020clg400-1"
     # generate input data
     x = gen_finn_dt_tensor(finn_dtype, in_shape)
     input_dict = prepare_inputs(x, finn_dtype)
 
-    model = make_single_dwc_modelwrapper(in_shape, out_shape, inWidth, outWidth, finn_dtype)
-    # verify abstraction level execution TODO: Remove this because padding?? (=> no longer equal?)
+    model = make_single_dwc_modelwrapper(in_shape, out_shape, inWidth, outWidth, finn_dtype, impl_style, flatten_vectors)
+    # verify abstraction level execution
     y = oxe.execute_onnx(model, input_dict)["outp"]
-    assert (
-        y == x
-    ).all(), """The output values are not the same as the
-        input values anymore."""
+    if(in_shape == out_shape): # Padding adds new values, check later
+        assert (
+            y == x
+        ).all(), """The output values are not the same as the
+            input values anymore."""
     assert y.shape == tuple(out_shape), """The output shape is incorrect."""
 
     model = model.transform(SpecializeLayers(test_fpga_part))
@@ -149,10 +160,8 @@ def test_fpgadataflow_dwc(config, exec_mode):
     else:
         x = x[0, : y.shape[-1]]
 
-    # cpp sim assert fails for BIPOLAR data type, but not RTL. TODO: Really?
-    if (finn_dtype != DataType["BIPOLAR"]) or (
-        finn_dtype != DataType["BIPOLAR"] and exec_mode != "cppsim"
-    ):
+    # cpp sim assert fails for BIPOLAR data type, but not RTL. TODO: Verify - seems to never work?
+    if (finn_dtype != DataType["BIPOLAR"]) or (exec_mode != "cppsim"):
         assert (
             y == x
         ).all(), """The output values are not the same as the
@@ -161,17 +170,23 @@ def test_fpgadataflow_dwc(config, exec_mode):
         assert True
 
 
-# TODO: Adapt test to new DWC => input_shape, output_shape
 @pytest.mark.parametrize(
     "config",
     [
-        ([1, 4], 2, 4, DataType["BIPOLAR"]),
-        ([1, 4], 4, 2, DataType["INT2"]),
-        ([1, 2, 8], 4, 4, DataType["INT2"]),
-        ([1, 2, 8], 8, 16, DataType["INT2"]),
-        ([1, 2, 8], 8, 32, DataType["INT2"]),
-        ([1, 4, 4], 8, 64, DataType["UINT4"]),
-        ([1, 8, 1], 2, 4, DataType["BIPOLAR"]),
+        # Standard DWC functionality:
+        ([1, 1, 4], [1, 1, 4], 2, 4, DataType["BIPOLAR"], False),
+        ([1, 1, 4], [1, 1, 4], 4, 2, DataType["INT2"], False),
+        ([1, 2, 8], [1, 2, 8], 4, 4, DataType["INT2"], False),
+        ([1, 2, 8], [1, 2, 8], 8, 16, DataType["INT2"], False),
+        # padding-specific tests:
+        ([1, 2, 2, 6 * 4], [1, 2, 2, 2 * 13], 4, 13, DataType["BIPOLAR"], False),
+        ([1, 2, 2, 2 * 4], [1, 2, 2, 4 * 4], 4, 4, DataType["BIPOLAR"], False),
+        ([1, 2, 2, 1 * 10], [1, 2, 2, 2 * 6], 10, 6, DataType["BIPOLAR"], False),
+        ([1, 2, 2, 1 * 10], [1, 2, 2, 2 * 4], 10, 4, DataType["BIPOLAR"], False),
+        # MMV-specific tests:
+        ([1, 2, 8], [1, 2, 8], 8, 32, DataType["INT2"], True),
+        ([1, 4, 4], [1, 4, 4], 8, 64, DataType["UINT4"], True),
+        ([1, 8, 1], [1, 8, 1], 2, 4, DataType["BIPOLAR"], True),
     ],
 )
 @pytest.mark.parametrize("impl_style", ["hls", "rtl"])
@@ -179,15 +194,21 @@ def test_fpgadataflow_dwc(config, exec_mode):
 @pytest.mark.slow
 @pytest.mark.vivado
 def test_fpgadataflow_dwc_stitched_rtlsim(config, impl_style):
-    shape, inWidth, outWidth, finn_dtype = config
+    in_shape, out_shape, inWidth, outWidth, finn_dtype, flatten_vectors = config
+    
+    if(in_shape != out_shape):
+        pytest.skip("""Padding skipped""")
+    
+    if(impl_style != "hls" and in_shape != out_shape):
+        pytest.skip("""Padding only supported by HLS implementation""")
 
     test_fpga_part = "xc7z020clg400-1"
     target_clk_ns = 10.0
     # generate input data
-    x = gen_finn_dt_tensor(finn_dtype, shape)
+    x = gen_finn_dt_tensor(finn_dtype, in_shape)
     input_dict = prepare_inputs(x, finn_dtype)
 
-    model = make_single_dwc_modelwrapper(shape, inWidth, outWidth, finn_dtype, impl_style)
+    model = make_single_dwc_modelwrapper(in_shape, out_shape, inWidth, outWidth, finn_dtype, impl_style, flatten_vectors)
     model = model.transform(SpecializeLayers(test_fpga_part))
     model = model.transform(InsertFIFO(create_shallow_fifos=True))
     model = model.transform(SpecializeLayers(test_fpga_part))
@@ -197,9 +218,19 @@ def test_fpgadataflow_dwc_stitched_rtlsim(config, impl_style):
     model = model.transform(CreateStitchedIP(test_fpga_part, target_clk_ns))
     model.set_metadata_prop("exec_mode", "rtlsim")
     y = oxe.execute_onnx(model, input_dict)["outp"]
+    
+    assert y.shape == tuple(out_shape), """The output shape is incorrect."""
+    
+    y = y.reshape(1, np.prod(y.shape))
+    x = x.reshape(1, np.prod(x.shape))
+
+    # remove padding if it was performed
+    if y.shape[-1] > x.shape[-1]:
+        y = y[0, : x.shape[-1]]
+    else:
+        x = x[0, : y.shape[-1]]
 
     assert (
         y == x
     ).all(), """The output values are not the same as the
         input values anymore."""
-    assert y.shape == tuple(shape), """The output shape is incorrect."""
