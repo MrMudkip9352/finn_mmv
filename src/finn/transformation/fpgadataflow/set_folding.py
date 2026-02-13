@@ -49,7 +49,7 @@ import finn.custom_op.fpgadataflow.hls.elementwise_binary_hls as elementwise_bin
 from finn.analysis.fpgadataflow.dataflow_performance import dataflow_performance
 from finn.analysis.fpgadataflow.op_and_param_counts import aggregate_dict_keys
 from finn.builder.build_dataflow_config import DataflowBuildConfig
-#from finn.builder.build_dataflow_steps import step_set_fifo_depths
+#from finn.builder.build_dataflow_steps import step_set_fifo_depths # Imported later to prevent circular
 from finn.transformation.fpgadataflow.annotate_cycles import AnnotateCycles
 from finn.transformation.fpgadataflow.insert_dwc import InsertDWC
 from finn.transformation.fpgadataflow.specialize_layers import SpecializeLayers
@@ -1321,37 +1321,36 @@ class Optimizer:
         self.params = pset_obj
 
 
-# Comment out this call because otherwise leading to circular import - TODO: Better solution
+def insert_and_size_fifos(
+    model_dir, model, board, fpga_part, consider_dwc_costs, auto_fifo_strategy
+):
+    """
+    force a fifo sizing step after folding to test the resource consumption
+    and throughput changes introduced by fifo sizing. This pass must be
+    performed using tree-based TAV generation. Otherwise,
+    it will take an extremely long amount of time.
+    """
+    if not consider_dwc_costs:
+        model = model.transform(InsertDWC())
 
-# def insert_and_size_fifos(
-#     model_dir, model, board, fpga_part, consider_dwc_costs, auto_fifo_strategy
-# ):
-#     """
-#     force a fifo sizing step after folding to test the resource consumption
-#     and throughput changes introduced by fifo sizing. This pass must be
-#     performed using tree-based TAV generation. Otherwise,
-#     it will take an extremely long amount of time.
-#     """
-#     if not consider_dwc_costs:
-#         model = model.transform(InsertDWC())
+    cfg = DataflowBuildConfig(
+        output_dir="",
+        auto_fifo_depths=True,
+        split_large_fifos=True,
+        auto_fifo_strategy=auto_fifo_strategy,
+        folding_config_file=None,
+        synth_clk_period_ns=5.0,
+        fpga_part=fpga_part,
+        steps=["step_set_fifo_depths"],
+        generate_outputs=[],
+        board=board,
+        extract_hw_config=False,
+    )
 
-#     cfg = DataflowBuildConfig(
-#         output_dir="",
-#         auto_fifo_depths=True,
-#         split_large_fifos=True,
-#         auto_fifo_strategy=auto_fifo_strategy,
-#         folding_config_file=None,
-#         synth_clk_period_ns=5.0,
-#         fpga_part=fpga_part,
-#         steps=["step_set_fifo_depths"],
-#         generate_outputs=[],
-#         board=board,
-#         extract_hw_config=False,
-#     )
+    from finn.builder.build_dataflow_steps import step_set_fifo_depths # Prevent circular import by importing here
+    model = step_set_fifo_depths(model, cfg)
 
-#     model = step_set_fifo_depths(model, cfg)
-
-#     return model
+    return model
 
 
 def common_divisors(numbers):
@@ -1617,7 +1616,6 @@ class SetFolding(Transformation):
                 model = model.transform(InsertDWC())
                 model = model.transform(SpecializeLayers(self.fpgapart))
 
-            """
             if self.enable_folding_fifo_heuristic and self.max_attempts != 1:
                 # store model to use in the builder
                 model_dir = "folded_model.onnx"
@@ -1631,7 +1629,6 @@ class SetFolding(Transformation):
                     self.auto_fifo_strategy,
                 )
                 model = model.transform(SpecializeLayers(self.fpgapart))
-                """
 
             resources = {}
             for n in opt2.model.graph.node:
