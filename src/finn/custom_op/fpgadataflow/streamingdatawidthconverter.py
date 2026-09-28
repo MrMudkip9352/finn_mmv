@@ -102,7 +102,7 @@ class StreamingDataWidthConverter(HWCustomOp):
             new_shape.append(i)
         ichannels = ishape[-1]
         
-        flatten = self.get_nodeattr("flattenVectors")
+        flatten = self.get_nodeattr("flattenVecs")
         if(flatten): ichannels = ichannels * ishape[-2]
         else: new_shape.append(ishape[-2])
         new_shape.append(int(ichannels // ielems))

@@ -45,6 +45,7 @@ from qonnx.util.onnx import nchw_to_nhwc
 
 # Module containing specializations of elementwise binary operations
 import finn.custom_op.fpgadataflow.elementwise_binary as elementwise_binary
+from finn.util.fpgadataflow import is_fpgadataflow_node
 
 
 class InferConvInpGen(Transformation):
@@ -2432,19 +2433,35 @@ class InsertAlignLabels(Transformation):
     def apply(self, model):
         graph = model.graph
         
+        # Fork the tensor entering the first dataflow layer, skipping any leading
+        # non-dataflow layers (e.g. a leading Reshape/Transpose). Inserting the
+        # DuplicateStreams ahead of those would sandwich them inside the dataflow
+        # block and break the contiguity check. 
         input_tensor = graph.input[0].name
         
+        while True:
+            cons = model.find_consumers(input_tensor)
+            assert (
+                cons is not None and len(cons) < 2
+            ), """Input has two successors, please run InferDuplicateStreamsLayer first."""
+            if len(cons) == 1 and not is_fpgadataflow_node(cons[0]):
+                input_tensor = cons[0].output[0]
+            else:
+                break
+        
         first_successor = model.find_consumers(input_tensor)
-        assert (len(first_successor) < 2
-                ), """Input has two successors, please run InferDuplicateStreamsLayer first."""
         
         input_shape = model.get_tensor_shape(input_tensor)
         input_datatype = model.get_tensor_datatype(input_tensor)
         
-        model_input = helper.make_tensor_value_info(model.make_new_valueinfo_name(), TensorProto.FLOAT, input_shape)
-        model.graph.value_info.append(model_input)
-        buffer_input = helper.make_tensor_value_info(model.make_new_valueinfo_name(), TensorProto.FLOAT, input_shape)
-        model.graph.value_info.append(buffer_input)
+        # DuplicateStreams forks the model input into the model path (model_input)
+        # and a passed-through side-channel (buffer_input) that is buffered while
+        # the model computes its output.
+        model_input = model.make_new_valueinfo_name()
+        buffer_input = model.make_new_valueinfo_name()
+        for t in (model_input, buffer_input):
+            model.set_tensor_shape(t, input_shape)
+            model.set_tensor_datatype(t, input_datatype)
         
         num_ch = int(input_shape[-1])
         vecs = input_shape[:-1]
@@ -2468,20 +2485,27 @@ class InsertAlignLabels(Transformation):
         
         graph.node.insert(0, dup_node)
         for i, successor_input in enumerate(first_successor[0].input):
-            if successor_input == input_tensor: # Match the first layer's input with the duplicated stream
-                    first_successor[0].input[i] = model_input
-                    break
+            if successor_input == input_tensor:  # rewire first layer onto the model path
+                first_successor[0].input[i] = model_input
+                break
 
         last_node = graph.node[-1]
-        final_output = last_node.output[0].name # TODO: Need to consider multiple outputs here?
+        final_output = last_node.output[0]  # current graph output (the labels)
         output_shape = model.get_tensor_shape(final_output)
         output_datatype = model.get_tensor_datatype(final_output)
         
-        model_output = helper.make_tensor_value_info(model.make_new_valueinfo_name(), TensorProto.FLOAT, output_shape)
-        model.graph.value_info.append(model_output)
-        buffer_output = helper.make_tensor_value_info(model.make_new_valueinfo_name(), TensorProto.FLOAT, input_shape)
-        model.graph.value_info.append(buffer_output)
-        # TODO: Do I need to and how do I define buffer_output as a global output?
+        # Detach the last layer's output onto an internal tensor so AlignLabels can
+        # consume it and re-emit the (now aligned) label stream on final_output.
+        model_output = model.make_new_valueinfo_name()
+        model.set_tensor_shape(model_output, output_shape)
+        model.set_tensor_datatype(model_output, output_datatype)
+        last_node.output[0] = model_output
+
+        # Passed-through input, emitted aligned with each label. It becomes a
+        # second global output below, so its shape lives in graph.output only
+        # (adding it to value_info too would duplicate the ValueInfoProto).
+        buffer_output = model.make_new_valueinfo_name()
+        model.set_tensor_datatype(buffer_output, input_datatype)
 
         align_node = helper.make_node(
                 "AlignLabels",
@@ -2494,16 +2518,82 @@ class InsertAlignLabels(Transformation):
                 label_shape = output_shape,
                 data_shape = input_shape,
                 PE=1,
-                name="DuplicateStreams_" + input_tensor,
-                #cpp_interface="hls_vector", TODO: Necessary
-                #hls_style="freerunning",
-                # TODO: Anything else outside of attributes in my class? (superclass attributes?)
+                name="AlignLabels_" + input_tensor,
             )
 
         graph.node.append(align_node)
 
-        # TODO: Is this necessary? Could it be detrimental?
+        # Expose the passed-through input as a second global output.
+        graph.output.append(
+            helper.make_tensor_value_info(buffer_output, TensorProto.FLOAT, input_shape)
+        )
+        
         model = model.transform(SortGraph())
         model = model.transform(InferShapes())
         model = model.transform(InferDataTypes())
         return (model, False) # Transformation needs to be applied exactly once => return False
+    
+class MatchAlignLabelsThroughput(Transformation):
+    """Fold the label-alignment bypass machinery -- each AlignLabels node and
+    the DuplicateStreams fork feeding it -- so the input bypass keeps up with
+    the rest of the model. Both nodes are inserted unfolded (PE=1), making the
+    element-serial bypass stream the accelerator's bottleneck; this picks the
+    smallest channel divisor whose per-frame cycle count does not exceed the
+    slowest remaining dataflow node. Run after folding is final."""
+
+    def apply(self, model):
+        align_nodes = [n for n in model.graph.node if n.op_type.startswith("AlignLabels")]
+        if not align_nodes:
+            return (model, False)
+        
+        for align in align_nodes:
+            fork = model.find_producer(align.input[1])
+            if fork is None or not fork.op_type.startswith("DuplicateStreams"):
+                continue
+
+            # Anchor the bypass folding to the MODEL PATH's own input rate: the
+            # elems/beat the first real layer consumes from the fork. The fork
+            # emits both outputs in lockstep, so at that PE the bypass can never
+            # be the bottleneck -- and the anchor is estimate-free (matching
+            # against cycles_estimate mis-folds when estimates are pessimistic:
+            # cybersecurity-mlp estimates ~7x above its measured interval, which
+            # left the bypass at 300 cycles/frame against a real 74).
+            # Storage is unaffected: the bypass buffer gets wider by the same
+            # factor its depth shrinks.
+            model_cons = None
+            for out in fork.output:
+                for cons in model.find_consumers(out):
+                    if not cons.op_type.startswith("AlignLabels"):
+                        cons_input_idx = list(cons.input).index(out)
+                        model_cons = (cons, cons_input_idx)
+            if model_cons is None:
+                continue
+            cons, idx = model_cons
+            try:
+                elems_per_beat = int(getCustomOp(cons).get_folded_input_shape(idx)[-1])
+            except Exception:
+                elems_per_beat = 1
+
+            for node in (fork, align):
+                inst = getCustomOp(node)
+                if node.op_type.startswith("AlignLabels"):
+                    vectors = inst.get_nodeattr("data_shape")[-2]
+                    channels = inst.get_nodeattr("data_shape")[-1]
+                else:
+                    vectors = inst.get_nodeattr("numInputVectors")[-1]
+                    channels = inst.get_nodeattr("NumChannels")
+                pe = channels  # fallback: fully parallel
+                for cand in range(1, channels + 1):
+                    if channels % cand == 0 and cand >= elems_per_beat:
+                        pe = cand
+                        break
+                inst.set_nodeattr("PE", pe)
+                m = vectors # fallback: fully parallel
+                if pe < elems_per_beat: # Need folding over vectors with M
+                    for cand in range(1, vectors + 1):
+                        if vectors % cand == 0 and cand * pe >= elems_per_beat:
+                            m = cand
+                            break
+                inst.set_nodeattr("M", m)
+
+        return (model, False)

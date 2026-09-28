@@ -1,8 +1,10 @@
+import numpy as np
+
 
 from finn.custom_op.fpgadataflow.alignlabels import AlignLabels
 from finn.custom_op.fpgadataflow.hlsbackend import HLSBackend
 
-import numpy as np
+
 
 
 class AlignLabels_hls(AlignLabels, HLSBackend):
@@ -15,6 +17,10 @@ class AlignLabels_hls(AlignLabels, HLSBackend):
         my_attrs = {}
         my_attrs.update(AlignLabels.get_nodeattr_types(self))
         my_attrs.update(HLSBackend.get_nodeattr_types(self))
+        # HLSBackend defaults inFIFODepths/outFIFODepths to a single entry; this
+        # node has two input and two output streams, so restore length-2 defaults.
+        my_attrs["inFIFODepths"] = ("ints", False, [2, 2])
+        my_attrs["outFIFODepths"] = ("ints", False, [2, 2])
         return my_attrs
 
     def verify_node(self):
@@ -60,7 +66,6 @@ class AlignLabels_hls(AlignLabels, HLSBackend):
         
 
     def defines(self, var):
-        pe = self.get_nodeattr("PE")
         numTotal = np.prod(self.get_folded_output_shape(1)[:-1])
         self.code_gen_dict["$DEFINES$"] = [
             "#define LabelWidth %d " % self.get_instream_width(0),

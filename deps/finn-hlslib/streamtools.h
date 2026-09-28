@@ -920,10 +920,11 @@ void AlignLabels(hls::stream<ap_uint<LabelWidth>> &in0, hls::stream<ap_uint<Data
 
 
   ap_uint<LabelWidth> label = in0.read();
+  out0.write(label);
   for (unsigned int i = 0; i < NumTotal; i++) {
 #pragma HLS pipeline style=flp II=1
     ap_uint<LabelWidth> data = in1.read();
-    if(i == 0) out0.write(label); // TODO: Does this work to only write label once? Would help with input width=output width on the label side
+    //if(i == 0) out0.write(label); // No real point to this, alignment not guaranteed regardless
     out1.write(data);
   }
 }

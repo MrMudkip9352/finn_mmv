@@ -43,6 +43,7 @@ class DuplicateStreams(HWCustomOp):
         my_attrs = {
             "NumChannels": ("i", True, 0),
             "PE": ("i", True, 0),
+            "M": ("i", False, 1),
             # how many duplicated output streams to create
             "NumOutputStreams": ("i", True, 0),
             # FINN DataTypes for input
@@ -55,6 +56,18 @@ class DuplicateStreams(HWCustomOp):
         }
         my_attrs.update(super().get_nodeattr_types())
         return my_attrs
+    
+    def get_numInputVectors_mmv(self):
+            vecs = list(self.get_nodeattr("numInputVectors"))
+            m = self.get_nodeattr("M")
+            for dim in reversed(range(len(vecs))):
+                if vecs[dim] > 1:
+                    assert (
+                        vecs[dim] % m == 0
+                    ), "Requirement spatial dim divisible by M is violated."
+                    vecs[dim] = vecs[dim] // m
+                    break
+            return vecs
 
     def get_num_output_streams(self):
         return self.get_nodeattr("NumOutputStreams")
@@ -67,11 +80,12 @@ class DuplicateStreams(HWCustomOp):
 
     def get_folded_input_shape(self, ind=0):
         ch = self.get_nodeattr("NumChannels")
+        m = self.get_nodeattr("M")
         pe = self.get_nodeattr("PE")
-        vecs = list(self.get_nodeattr("numInputVectors"))
+        vecs = self.get_numInputVectors_mmv()
         assert ch % pe == 0, "PE must divide NumChannels"
         folds = int(ch / pe)
-        folded_ishape = tuple(vecs + [folds, pe])
+        folded_ishape = tuple(vecs + [folds, pe * m])
         return folded_ishape
 
     def get_normal_output_shape(self, ind=0):
@@ -115,15 +129,17 @@ class DuplicateStreams(HWCustomOp):
     def get_instream_width(self, ind=0):
         """Returns input stream width."""
         ibits = self.get_input_datatype().bitwidth()
+        m = self.get_nodeattr("M")
         pe = self.get_nodeattr("PE")
-        in_width = pe * ibits
+        in_width = m * pe * ibits
         return in_width
 
     def get_outstream_width(self, ind=0):
         """Returns output stream width."""
         obits = self.get_output_datatype().bitwidth()
+        m = self.get_nodeattr("M")
         pe = self.get_nodeattr("PE")
-        out_width = pe * obits
+        out_width = m * pe * obits
         return out_width
 
     def get_number_output_values(self):
