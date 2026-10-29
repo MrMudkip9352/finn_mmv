@@ -216,13 +216,13 @@ def make_single_multithresholding_modelwrapper(
     ],
 )
 @pytest.mark.parametrize("fold", [-1, 1, 2])
+@pytest.mark.parametrize("m", [1, 2])
 @pytest.mark.parametrize("narrow", [True, False])
 @pytest.mark.parametrize("per_tensor", [True, False])
 @pytest.mark.parametrize("impl_style", ["hls", "rtl"])
 @pytest.mark.parametrize("exec_mode", ["cppsim", "rtlsim"])
 @pytest.mark.parametrize("mem_mode", ["internal_embedded", "internal_decoupled"])
 @pytest.mark.parametrize("round_thresh", [True, False])
-@pytest.mark.parametrize("m", [1, 2])
 @pytest.mark.fpgadataflow
 @pytest.mark.vivado
 @pytest.mark.slow
