@@ -457,7 +457,7 @@ class Thresholding_hls(Thresholding, HLSBackend):
                 self.get_nodeattr("PE"),
                 numReps,
                 total_spatial_size,
-                m
+                m,
             )
         ]
         if self.get_nodeattr("mem_mode") == "internal_decoupled":
@@ -531,20 +531,20 @@ class Thresholding_hls(Thresholding, HLSBackend):
             if m > 1:
                 multichan_width_in = self.get_instream_width() // m
                 multichan_width_out = self.get_outstream_width() // m
-                
+
                 self.code_gen_dict["$DOCOMPUTE$"] = [
                     """
                     #pragma HLS dataflow
                     hls::stream<MultiChanData<{ch}, {width_in}>> in_mmv("in_mmv");
                     hls::stream<MultiChanData<{ch}, {width_out}>> out_mmv("out_mmv");
-                    PackMultiChanData<{ch}, {width_in}>(in0_V, in_mmv, numReps * ImgDim1); 
+                    PackMultiChanData<{ch}, {width_in}>(in0_V, in_mmv, numReps * ImgDim1);
                     """.format(
                         ch=m,
                         width_in=multichan_width_in,
                         width_out=multichan_width_out,
                     )
-                ] # numReps is always 1, stream read/write repetition results from ImgDim1
-                
+                ]
+
                 self.code_gen_dict["$DOCOMPUTE$"] += [
                     """Thresholding_Batch<ImgDim1, NumChannels1, PE1, M, {}, {}>
                     (in_mmv, out_mmv, threshs, numReps);""".format(
@@ -552,7 +552,7 @@ class Thresholding_hls(Thresholding, HLSBackend):
                         tmpl_args["TDstI"],
                     )
                 ]
-                
+
                 self.code_gen_dict["$DOCOMPUTE$"] += [
                     """
                     FlattenMultiChanData<{ch}, {width_out}>(out_mmv, out0_V, numReps * ImgDim1);
@@ -571,7 +571,7 @@ class Thresholding_hls(Thresholding, HLSBackend):
                 ]
         elif mem_mode == "internal_decoupled":
             if m > 1:
-                raise Exception("M>1 not supported in decoupled mode")
+                raise Exception("M > 1 only supported in internal embedded mem mode")
             # note that numReps is set to 1 in the invocation below, since
             # - for cppsim the repetition comes from the threshold stream reader+input
             # - for synth the unit runs continuously anyway (ap_ctrl_none)

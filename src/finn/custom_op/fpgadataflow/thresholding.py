@@ -178,17 +178,21 @@ class Thresholding(HWCustomOp):
         # Update QONNX DataType of tensor for consistency
         model.set_tensor_datatype(self.onnx_node.input[1], tdt)
         return DataType[self.get_nodeattr("weightDataType")]
-    
+
     def get_numInputVectors_mmv(self):
-        # support spatial parallelism by adjusting numInputVectors internally
-        # apply the M ('MMV') factor to the last dimension that is > 1
+        """
+        Returns numInputVectors adjusted based on MMV parallelism.
+        M ('MMV') factor is applied to the last dimension of input vectors that is > 1
+        """
         vecs = list(self.get_nodeattr("numInputVectors"))
         m = self.get_nodeattr("M")
+        if m > 1:
+            mh = self.get_nodeattr("NumChannels")
+            pe = self.get_nodeattr("PE")
+            assert pe == mh, "M > 1 only permitted for maximal PE"
         for dim in reversed(range(len(vecs))):
             if vecs[dim] > 1:
-                assert (
-                    vecs[dim] % m == 0
-                ), "Requirement spatial dim divisible by M is violated."
+                assert vecs[dim] % m == 0, "Requirement spatial dim divisible by M is violated."
                 vecs[dim] = vecs[dim] // m
                 break
         return vecs

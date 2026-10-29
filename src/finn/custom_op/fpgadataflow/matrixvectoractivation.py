@@ -256,20 +256,23 @@ class MVAU(HWCustomOp):
     def get_output_datatype(self, ind=0):
         """Returns FINN DataType of output."""
         return DataType[self.get_nodeattr("outputDataType")]
-    
+
     def get_numInputVectors_mmv(self):
-        # support spatial parallelism by adjusting numInputVectors internally
-        # apply the M ('MMV') factor to the last dimension that is > 1
-        # for 2D conv: applies to W dimension [N,H,W] -> [N,H,W/M]
-        # for 1D conv: applies to either W or H dimension
-        # for FC: applies to N (batch) dimension (theoretic use case)
+        """
+        Returns numInputVectors adjusted based on MMV parallelism.
+        M ('MMV') factor is applied to the last dimension of input vectors that is > 1
+        """
         vecs = list(self.get_nodeattr("numInputVectors"))
         m = self.get_nodeattr("M")
+        if m > 1:
+            mw = self.get_nodeattr("MW")
+            mh = self.get_nodeattr("MH")
+            pe = self.get_nodeattr("PE")
+            simd = self.get_nodeattr("SIMD")
+            assert pe == mh and simd == mw, "M > 1 only permitted for maximal PE/SIMD"
         for dim in reversed(range(len(vecs))):
             if vecs[dim] > 1:
-                assert (
-                    vecs[dim] % m == 0
-                ), "Requirement spatial dim divisible by M is violated."
+                assert vecs[dim] % m == 0, "Requirement spatial dim divisible by M is violated."
                 vecs[dim] = vecs[dim] // m
                 break
         return vecs
@@ -368,10 +371,6 @@ class MVAU(HWCustomOp):
         vecs = list(self.get_nodeattr("numInputVectors"))
         normal_output_shape = tuple(vecs + [mh])
         return normal_output_shape
-
-    def get_number_output_values(self):
-        nf = np.prod(self.get_folded_output_shape()[:-1])
-        return nf
 
     def calc_wmem(self):
         """Calculates and returns WMEM."""

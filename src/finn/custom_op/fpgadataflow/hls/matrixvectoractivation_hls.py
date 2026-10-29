@@ -244,7 +244,7 @@ class MVAU_hls(MVAU, HLSBackend):
                 self.calc_wmem(),
                 self.calc_tmem(),
                 numReps,
-                m
+                m,
             )
         ]
         if mem_mode in ["internal_decoupled", "external", "external_mem", "dynamic"]:
@@ -329,6 +329,9 @@ class MVAU_hls(MVAU, HLSBackend):
             threshs = "threshs"
         if mem_mode == "internal_embedded":
             if m > 1:
+                idt = self.get_input_datatype(0)
+                if idt == DataType["BIPOLAR"]:
+                    raise Exception("M > 1 not supported with bipolar inputs") # TODO: Look into
                 multichan_width_in = self.get_instream_width() // m
                 multichan_width_out = self.get_outstream_width() // m
 
@@ -377,7 +380,7 @@ class MVAU_hls(MVAU, HLSBackend):
                 ]
         elif mem_mode in ["internal_decoupled", "external", "external_mem", "dynamic"]:
             if m > 1:
-                raise Exception("M>1 not supported in decoupled or external mem mode")
+                raise Exception("M > 1 only supported in internal embedded mem mode")
             wdt = self.get_input_datatype(1)
             if wdt == DataType["BIPOLAR"]:
                 export_wdt = DataType["BINARY"]

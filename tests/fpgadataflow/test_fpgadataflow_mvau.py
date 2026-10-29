@@ -73,7 +73,7 @@ from finn.util.test import make_runtime_weight_stream
 finnxsi = xsi if xsi.is_available() else None
 
 
-def make_single_fclayer_modelwrapper(W, pe, simd, wdt, idt, odt, T=None, tdt=None, num_chan = 1, m = 1):
+def make_single_fclayer_modelwrapper(W, pe, simd, wdt, idt, odt, T=None, tdt=None, num_chan=1, m=1):
     mw = W.shape[0]
     mh = W.shape[1]
     assert mh % pe == 0
@@ -116,7 +116,7 @@ def make_single_fclayer_modelwrapper(W, pe, simd, wdt, idt, odt, T=None, tdt=Non
         backend="fpgadataflow",
         MW=mw,
         MH=mh,
-        numInputVectors = [num_chan],
+        numInputVectors=[num_chan],
         SIMD=simd,
         PE=pe,
         M=m,
@@ -302,13 +302,13 @@ def test_fpgadataflow_mvau_hwop(idt, wdt, act, nf, sf, m, mw, mh, num_chan):
 @pytest.mark.vivado
 def test_fpgadataflow_mvau_cppsim(mem_mode, idt, wdt, act, nf, sf, m, mw, mh, num_chan):
     if m > 1:
-        if (nf != 1 or sf != 1):
+        if nf != 1 or sf != 1:
             pytest.skip("""M > 1 only supported for maximal parallelization factors (PE, SIMD)""")
         if idt == DataType["BIPOLAR"]:
-            pytest.skip("""M > 1 not supported for bipolar inputs""") #TODO: Verify claim
+            pytest.skip("""M > 1 not supported for bipolar inputs""")  # TODO: Verify claim
         if mem_mode != "internal_embedded":
             pytest.skip("""M > 1 only supported for internal embedded memory mode""")
-    
+
     if nf == -1:
         nf = mh
     if sf == -1:
@@ -407,12 +407,14 @@ def test_fpgadataflow_mvau_cppsim(mem_mode, idt, wdt, act, nf, sf, m, mw, mh, nu
 @pytest.mark.fpgadataflow
 @pytest.mark.slow
 @pytest.mark.vivado
-def test_fpgadataflow_mvau_rtlsim(mem_mode, idt, wdt, act, nf, sf, m, mw, mh, num_chan, pumpedMemory):
+def test_fpgadataflow_mvau_rtlsim(
+    mem_mode, idt, wdt, act, nf, sf, m, mw, mh, num_chan, pumpedMemory
+):
     if m > 1:
-        if (nf != 1 or sf != 1):
+        if nf != 1 or sf != 1:
             pytest.skip("""M > 1 only supported for maximal parallelization factors (PE, SIMD)""")
         if idt == DataType["BIPOLAR"]:
-            pytest.skip("""M > 1 not supported for bipolar inputs""") #TODO: Verify claim
+            pytest.skip("""M > 1 not supported for bipolar inputs""")  # TODO: Verify claim
         if mem_mode != "internal_embedded":
             pytest.skip("""M > 1 only supported for internal embedded memory mode""")
     if nf == -1:
@@ -524,9 +526,7 @@ def test_fpgadataflow_mvau_rtlsim(mem_mode, idt, wdt, act, nf, sf, m, mw, mh, nu
         model = model.transform(HLSSynthIP())
         model = model.transform(CreateStitchedIP(part, 5))
         model.set_metadata_prop("exec_mode", "rtlsim")
-        y_produced_stitch = oxe.execute_onnx(model, {model.get_first_global_in(): x})[
-            model.get_first_global_out()
-        ]
+        y_produced_stitch = oxe.execute_onnx(model, input_dict)["outp"]
         assert (
             y_produced_stitch.reshape(y_expected.shape) == y_expected
         ).all(), "stitched-IP rtlsim failed"

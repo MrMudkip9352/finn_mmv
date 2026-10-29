@@ -251,7 +251,7 @@ def test_fpgadataflow_thresholding(
     if narrow and activation == DataType["BIPOLAR"]:
         pytest.skip("Narrow needs to be false with bipolar activation.")
     if m > 1:
-        if (impl_style != "hls" or mem_mode != "internal_embedded"):
+        if impl_style != "hls" or mem_mode != "internal_embedded":
             pytest.skip("""M > 1 only supported by HLS-MVAU in internal embedded memory mode""")
         if fold != 1:
             pytest.skip("""M > 1 only supported for maximal parallelization factors (PE)""")
@@ -333,16 +333,14 @@ def test_fpgadataflow_thresholding(
     inst = getCustomOp(node)
     inst.set_nodeattr("PE", pe)
     inst.set_nodeattr("M", m)
-    
+
     if impl_style == "hls":
         inst.set_nodeattr("mem_mode", mem_mode)
-    # Applying transformation and then using the same inst afterwards leads to irrelevant set
-    
+
     if round_thresh is True:
         model = model.transform(RoundAndClipThresholds())
     model = model.transform(MinimizeWeightBitWidth())
     model = model.transform(GiveUniqueNodeNames())
-
 
     if exec_mode == "cppsim":
         model = model.transform(PrepareCppSim())
