@@ -331,7 +331,7 @@ class MVAU_hls(MVAU, HLSBackend):
             if m > 1:
                 idt = self.get_input_datatype(0)
                 if idt == DataType["BIPOLAR"]:
-                    raise Exception("M > 1 not supported with bipolar inputs") # TODO: Look into
+                    raise Exception("M > 1 not supported with bipolar inputs")  # TODO: Look into
                 multichan_width_in = self.get_instream_width() // m
                 multichan_width_out = self.get_outstream_width() // m
 
