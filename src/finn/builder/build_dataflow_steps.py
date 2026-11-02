@@ -1141,6 +1141,7 @@ def step_set_fifo_depths(model: ModelWrapper, cfg: DataflowBuildConfig):
     hw_attrs = [
         "PE",
         "SIMD",
+        "M",
         "parallel_window",
         "ram_style",
         "depth",

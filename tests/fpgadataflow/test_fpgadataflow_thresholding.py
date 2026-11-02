@@ -305,6 +305,7 @@ def test_infer_thresholding_per_channel_nchw_input_unset_data_layout():
     [
         [1],
         [1, 2, 2],
+        [4],
     ],
 )
 @pytest.mark.parametrize("activation", [DataType["UINT4"], DataType["INT4"], DataType["BIPOLAR"]])
@@ -320,6 +321,7 @@ def test_infer_thresholding_per_channel_nchw_input_unset_data_layout():
     ],
 )
 @pytest.mark.parametrize("fold", [-1, 1, 2])
+@pytest.mark.parametrize("m", [1, 2])
 @pytest.mark.parametrize("narrow", [True, False])
 @pytest.mark.parametrize("per_tensor", [True, False])
 @pytest.mark.parametrize("impl_style", ["hls", "rtl"])
@@ -341,6 +343,7 @@ def test_fpgadataflow_thresholding(
     exec_mode,
     mem_mode,
     round_thresh,
+    m,
 ):
     # the mem_mode parameter can only be used for the hls thresholding
     # so the test will only be executed once for impl_style=rtl and once skipped
@@ -351,7 +354,14 @@ def test_fpgadataflow_thresholding(
             "Skip, because test is identical to impl_style=rtl and mem_mode=internal_embedded"
         )
     if narrow and activation == DataType["BIPOLAR"]:
-        pytest.skip("Narrow needs to be false with biploar activation.")
+        pytest.skip("Narrow needs to be false with bipolar activation.")
+    if m > 1:
+        if impl_style != "hls" or mem_mode != "internal_embedded":
+            pytest.skip("""M > 1 only supported by HLS-MVAU in internal embedded memory mode""")
+        if fold != 1:
+            pytest.skip("""M > 1 only supported for maximal parallelization factors (PE)""")
+        if num_input_vecs == [1]:
+            pytest.skip("M > 1 only usable with multiple input vectors")
     input_data_type, threshold_data_type = idt_tdt_cfg
     num_steps = activation.get_num_possible_values() - 1
     if input_data_type in ["FLOAT32", "FLOAT16"] and round_thresh:
@@ -427,13 +437,15 @@ def test_fpgadataflow_thresholding(
     node = model.get_nodes_by_op_type(model.graph.node[0].op_type)[0]
     inst = getCustomOp(node)
     inst.set_nodeattr("PE", pe)
+    inst.set_nodeattr("M", m)
+
+    if impl_style == "hls":
+        inst.set_nodeattr("mem_mode", mem_mode)
+
     if round_thresh is True:
         model = model.transform(RoundAndClipThresholds())
     model = model.transform(MinimizeWeightBitWidth())
     model = model.transform(GiveUniqueNodeNames())
-
-    if impl_style == "hls":
-        inst.set_nodeattr("mem_mode", mem_mode)
 
     if exec_mode == "cppsim":
         model = model.transform(PrepareCppSim())

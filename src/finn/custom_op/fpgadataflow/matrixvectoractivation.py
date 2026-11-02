@@ -62,6 +62,7 @@ class MVAU(HWCustomOp):
         my_attrs = {
             "PE": ("i", True, 0),
             "SIMD": ("i", True, 0),
+            "M": ("i", False, 1),
             "MW": ("i", True, 0),
             "MH": ("i", True, 0),
             "resType": ("s", False, "auto", {"auto", "lut", "dsp"}),
@@ -275,10 +276,31 @@ class MVAU(HWCustomOp):
             return self.get_weight_stream_simd()
         return self.get_nodeattr("SIMD")
 
+    def get_numInputVectors_mmv(self):
+        """
+        Returns numInputVectors adjusted based on MMV parallelism.
+        M ('MMV') factor is applied to the last dimension of input vectors that is > 1
+        """
+        vecs = list(self.get_nodeattr("numInputVectors"))
+        m = self.get_nodeattr("M")
+        if m > 1:
+            mw = self.get_nodeattr("MW")
+            mh = self.get_nodeattr("MH")
+            pe = self.get_nodeattr("PE")
+            simd = self.get_nodeattr("SIMD")
+            assert pe == mh and simd == mw, "M > 1 only permitted for maximal PE/SIMD"
+        for dim in reversed(range(len(vecs))):
+            if vecs[dim] > 1:
+                assert vecs[dim] % m == 0, "Requirement spatial dim divisible by M is violated."
+                vecs[dim] = vecs[dim] // m
+                break
+        return vecs
+
     def get_instream_width(self, ind=0):
         if ind == 0:
             i_bits = self.get_input_datatype(0).bitwidth()
-            width = i_bits * self.get_nodeattr("SIMD")
+            m = self.get_nodeattr("M")
+            width = i_bits * self.get_nodeattr("SIMD") * m
         elif ind == 1:
             pe = self.get_nodeattr("PE")
             wp = self.get_input_datatype(1).bitwidth()
@@ -307,7 +329,8 @@ class MVAU(HWCustomOp):
 
     def get_outstream_width(self, ind=0):
         o_bits = self.get_output_datatype().bitwidth()
-        out_width = o_bits * self.get_nodeattr("PE")
+        m = self.get_nodeattr("M")
+        out_width = o_bits * self.get_nodeattr("PE") * m
         return out_width
 
     def get_folded_input_shape(self, ind=0):
@@ -316,14 +339,15 @@ class MVAU(HWCustomOp):
         simd = self.get_nodeattr("SIMD")
         pe = self.get_nodeattr("PE")
         mem_mode = self.get_nodeattr("mem_mode")
+        m = self.get_nodeattr("M")
         sf = mw // simd
         nf = mh // pe
-        vecs = list(self.get_nodeattr("numInputVectors"))
+        vecs = self.get_numInputVectors_mmv()
         n_vecs = int(np.prod(vecs))
 
         if ind == 0:
             # calculate shape of input 0
-            folded_input_shape = tuple(vecs + [sf, simd])
+            folded_input_shape = tuple(vecs + [sf, simd * m])
         elif ind == 1:
             match mem_mode:
                 case "dynamic":
@@ -343,9 +367,10 @@ class MVAU(HWCustomOp):
     def get_folded_output_shape(self, ind=0):
         mh = self.get_nodeattr("MH")
         pe = self.get_nodeattr("PE")
+        m = self.get_nodeattr("M")
         nf = mh // pe
-        vecs = list(self.get_nodeattr("numInputVectors"))
-        folded_output_shape = tuple(vecs + [nf, pe])
+        vecs = self.get_numInputVectors_mmv()
+        folded_output_shape = tuple(vecs + [nf, pe * m])
         return folded_output_shape
 
     def get_normal_input_shape(self, ind=0):
@@ -517,16 +542,14 @@ class MVAU(HWCustomOp):
         weight stream never stalls it."""
         pe = self.get_nodeattr("PE")
         simd = self.get_nodeattr("SIMD")
-        num_inp_vec = self.get_nodeattr("numInputVectors")
+        num_inp_vec = self.get_numInputVectors_mmv()
         mh = self.get_nodeattr("MH")
         mw = self.get_nodeattr("MW")
-        # since mmv != 1 is not supported yet, we set mmv for now to 1
-        mmv = 1
         # TH>1 (tiling) does not change the compute cycles: the tiled MVU still
         # consumes one PE x SIMD weight tile per cycle, but reuses each tile for TH
         # input vectors, so the weight stream only needs WSIMD weights per cycle,
         # the smallest divisor of PE*SIMD with PE*SIMD/WSIMD <= TH
-        exp_cycles = (mh / pe) * (mw / simd) * np.prod(num_inp_vec) / mmv
+        exp_cycles = (mh / pe) * (mw / simd) * np.prod(num_inp_vec)
         return int(exp_cycles)
 
     def get_exp_weight_fetch_cycles(self):

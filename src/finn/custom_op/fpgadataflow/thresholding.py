@@ -52,6 +52,7 @@ class Thresholding(HWCustomOp):
             "runtime_writeable_weights": ("i", False, 0, {0, 1}),
             # parallelization; channels thresholded per cycle
             "PE": ("i", True, 0),
+            "M": ("i", False, 1),
             # number of channels (each may have different thresholds)
             "NumChannels": ("i", True, 0),
             # number of steps in thresholding function. Used only in decoupled mode
@@ -178,10 +179,29 @@ class Thresholding(HWCustomOp):
         model.set_tensor_datatype(self.onnx_node.input[1], tdt)
         return DataType[self.get_nodeattr("weightDataType")]
 
+    def get_numInputVectors_mmv(self):
+        """
+        Returns numInputVectors adjusted based on MMV parallelism.
+        M ('MMV') factor is applied to the last dimension of input vectors that is > 1
+        """
+        vecs = list(self.get_nodeattr("numInputVectors"))
+        m = self.get_nodeattr("M")
+        if m > 1:
+            mh = self.get_nodeattr("NumChannels")
+            pe = self.get_nodeattr("PE")
+            assert pe == mh, "M > 1 only permitted for maximal PE"
+        for dim in reversed(range(len(vecs))):
+            if vecs[dim] > 1:
+                assert vecs[dim] % m == 0, "Requirement spatial dim divisible by M is violated."
+                vecs[dim] = vecs[dim] // m
+                break
+        return vecs
+
     def get_instream_width(self, ind=0):
         if ind == 0:
             i_bits = self.get_input_datatype(0).bitwidth()
-            width = i_bits * self.get_nodeattr("PE")
+            m = self.get_nodeattr("M")
+            width = i_bits * self.get_nodeattr("PE") * m
         elif ind == 1:
             # try to access mem_mode attribute, doesn't exist for RTL Thresholding
             try:
@@ -201,13 +221,15 @@ class Thresholding(HWCustomOp):
 
     def get_outstream_width(self, ind=0):
         o_bits = self.get_output_datatype().bitwidth()
-        return o_bits * self.get_nodeattr("PE")
+        m = self.get_nodeattr("M")
+        return o_bits * self.get_nodeattr("PE") * m
 
     def get_folded_input_shape(self, ind=0):
         pe = self.get_nodeattr("PE")
         fold = self.calc_tmem()
-        vecs = list(self.get_nodeattr("numInputVectors"))
-        folded_input_shape = tuple(vecs + [fold, pe])
+        m = self.get_nodeattr("M")
+        vecs = self.get_numInputVectors_mmv()
+        folded_input_shape = tuple(vecs + [fold, pe * m])
         return folded_input_shape
 
     def get_folded_output_shape(self, ind=0):
